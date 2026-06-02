@@ -46,6 +46,10 @@ public class User {
     @Builder.Default
     private List<Flight> flights = new ArrayList<>();
 
+    /** Incremented each time this carrier cancels a match before pickup. Reserved for future rule enforcement. */
+    @Column(name = "cancellation_count", nullable = false)
+    private int cancellationCount = 0;
+
     @Column(name = "is_active_user", nullable = false)
     private boolean isActiveUser = true;
 
