@@ -4,9 +4,10 @@ import com.airpick.airpick_service.models.User;
 import com.airpick.airpick_service.models.UserProfile;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record UserResponseDto(
-        Long id,
+        UUID id,
         String email,
         String providerId,
         String role,
@@ -18,7 +19,7 @@ public record UserResponseDto(
 ) {
 
     public record ProfileDto(
-            Long id,
+            UUID id,
             String firstName,
             String middleName,
             String lastName,

@@ -2,7 +2,7 @@
 -- Roles
 -- ============================================================
 CREATE TABLE roles (
-    id      BIGSERIAL    PRIMARY KEY,
+    id      UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name    VARCHAR(50)  NOT NULL UNIQUE
 );
 
@@ -10,7 +10,7 @@ CREATE TABLE roles (
 -- Modes
 -- ============================================================
 CREATE TABLE modes (
-    id          BIGSERIAL    PRIMARY KEY,
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name        VARCHAR(50)  NOT NULL UNIQUE,
     description TEXT
 );
@@ -19,12 +19,12 @@ CREATE TABLE modes (
 -- Users
 -- ============================================================
 CREATE TABLE users (
-    id              BIGSERIAL       PRIMARY KEY,
+    id              UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     email           VARCHAR(255)    NOT NULL UNIQUE,
     password        VARCHAR(255),
     provider_id     VARCHAR(255),
-    role_id         BIGINT          NOT NULL REFERENCES roles(id),
-    active_mode_id  BIGINT          REFERENCES modes(id),
+    role_id         UUID            NOT NULL REFERENCES roles(id),
+    active_mode_id  UUID            REFERENCES modes(id),
     is_active_user  BOOLEAN         NOT NULL DEFAULT TRUE,
     is_blocked      BOOLEAN         NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
@@ -35,8 +35,8 @@ CREATE TABLE users (
 -- User Profiles
 -- ============================================================
 CREATE TABLE user_profiles (
-    id                  BIGSERIAL       PRIMARY KEY,
-    user_id             BIGINT          NOT NULL UNIQUE REFERENCES users(id),
+    id                  UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id             UUID            NOT NULL UNIQUE REFERENCES users(id),
     first_name          VARCHAR(100),
     middle_name         VARCHAR(100),
     last_name           VARCHAR(100),
@@ -54,8 +54,8 @@ CREATE TABLE user_profiles (
 -- User Verifications
 -- ============================================================
 CREATE TABLE user_verifications (
-    id                          BIGSERIAL   PRIMARY KEY,
-    user_profile_id             BIGINT      NOT NULL UNIQUE REFERENCES user_profiles(id),
+    id                          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_profile_id             UUID        NOT NULL UNIQUE REFERENCES user_profiles(id),
     verification_requested_at   TIMESTAMP,
     status                      VARCHAR(50),
     verification_message        TEXT,
@@ -74,8 +74,8 @@ INSERT INTO roles (name) VALUES
 -- Seed: Modes
 -- ============================================================
 INSERT INTO modes (name, description) VALUES
-    ('DRIVER',    'User operating as a driver'),
-    ('PASSENGER', 'User operating as a passenger');
+    ('CARRIER', 'User operating as a carrier (traveler carrying items)'),
+    ('SHIPPER', 'User operating as a shipper (sender dispatching items)');
 
 -- ============================================================
 -- Seed: Admin user  (password will be configured separately)

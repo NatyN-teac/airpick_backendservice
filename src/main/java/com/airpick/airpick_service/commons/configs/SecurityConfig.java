@@ -34,6 +34,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/users/register").permitAll()
+                        .requestMatchers("/airports").permitAll() // TODO: remove after testing
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

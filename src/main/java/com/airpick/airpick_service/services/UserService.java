@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service responsible for all user-related business logic including
@@ -160,7 +161,7 @@ public class UserService {
      * @return the matching {@link User} entity
      * @throws IllegalArgumentException if no user exists with the given ID
      */
-    public User findById(Long id) {
+    public User findById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("User not found for id: {}", id);
