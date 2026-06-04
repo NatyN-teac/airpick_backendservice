@@ -66,6 +66,13 @@ public class OfferRequest {
     @Builder.Default
     private OfferRequestStatus status = OfferRequestStatus.OPEN;
 
+    /**
+     * When false (default), carriers must price every item in the request.
+     * When true, carriers may propose prices for a subset of items.
+     */
+    @Column(name = "partial_proposal_accepted", nullable = false)
+    private boolean partialProposalAccepted = false;
+
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "offerRequest", cascade = CascadeType.ALL, orphanRemoval = true)

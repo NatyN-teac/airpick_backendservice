@@ -1,11 +1,13 @@
 package com.airpick.airpick_service.controllers;
 
 import com.airpick.airpick_service.commons.security.UserDetailsImpl;
+import com.airpick.airpick_service.dtos.input.RegisterDeviceRequestDto;
 import com.airpick.airpick_service.dtos.input.RegisterRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateModeRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateUserRequestDto;
 import com.airpick.airpick_service.dtos.output.ApiResponseDto;
 import com.airpick.airpick_service.dtos.output.UserResponseDto;
+import com.airpick.airpick_service.services.UserDeviceService;
 import com.airpick.airpick_service.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,6 +42,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final UserDeviceService userDeviceService;
 
     /**
      * Registers a new user account using a Firebase ID token from the mobile client.
@@ -209,5 +212,59 @@ public class UserController {
             @RequestBody UpdateModeRequestDto request) {
         UserResponseDto user = userService.updateMode(userDetails.getUsername(), request);
         return ResponseEntity.ok(ApiResponseDto.ok(user));
+    }
+
+    // -------------------------------------------------------------------------
+    // Device management
+    // -------------------------------------------------------------------------
+
+    @Operation(
+            summary = "Register or refresh FCM device token",
+            description = """
+                    Registers the device's FCM token for push notification delivery. \
+                    Flutter must call this endpoint on every app start and whenever \
+                    FirebaseMessaging.instance.onTokenRefresh fires.
+
+                    If the token already exists it is refreshed (lastActive updated). \
+                    A user can have multiple devices registered simultaneously — \
+                    all will receive push notifications.
+
+                    Requires a valid `Bearer` JWT token in the `Authorization` header.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Device registered or refreshed"),
+            @ApiResponse(responseCode = "400", description = "Missing or invalid token"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
+    @PostMapping("/devices")
+    public ResponseEntity<Void> registerDevice(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody RegisterDeviceRequestDto request) {
+        userDeviceService.registerDevice(userDetails.getUsername(), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Unregister FCM device token",
+            description = """
+                    Removes the device's FCM token on logout so the device stops receiving \
+                    push notifications. Flutter should call this before signing out.
+
+                    Pass the FCM token as a request parameter: `?fcmToken=<token>`.
+
+                    Requires a valid `Bearer` JWT token in the `Authorization` header.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Device unregistered"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
+    @DeleteMapping("/devices")
+    public ResponseEntity<Void> unregisterDevice(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam String fcmToken) {
+        userDeviceService.unregisterDevice(userDetails.getUsername(), fcmToken);
+        return ResponseEntity.noContent().build();
     }
 }

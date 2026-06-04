@@ -29,12 +29,13 @@ public class OfferProposalItem {
     @JoinColumn(name = "proposal_id", nullable = false)
     private OfferProposal proposal;
 
+    /**
+     * The sender's item row this price applies to.
+     * Item type and quantity are read from here — the carrier only adds pricePerItem.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", nullable = false)
-    private Item item;
-
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal quantity;
+    @JoinColumn(name = "offer_request_item_id", nullable = false)
+    private OfferRequestItem offerRequestItem;
 
     @Column(name = "price_per_item", nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerItem;

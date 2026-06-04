@@ -49,6 +49,19 @@ public class Match {
     @Column(nullable = false, length = 20)
     private MatchStatus status;
 
+    /**
+     * True when the shipper designated a third-party receiver at match creation.
+     * False means the shipper themselves will receive the items.
+     */
+    @Column(name = "receiver_needed", nullable = false)
+    private boolean receiverNeeded = false;
+
+    /** Null when receiverNeeded is false. Populated and activated on match acceptance. */
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToOne(mappedBy = "match", cascade = CascadeType.ALL)
+    private MatchReceiver receiver;
+
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 

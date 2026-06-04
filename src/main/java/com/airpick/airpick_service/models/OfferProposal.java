@@ -3,6 +3,7 @@ package com.airpick.airpick_service.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,32 @@ public class OfferProposal {
 
     @Column(columnDefinition = "TEXT")
     private String note;
+
+    /** Optional — falls back to offerRequest.destinationCountry when null. */
+    @Column(name = "delivery_area", length = 200)
+    private String deliveryArea;
+
+    /** Optional — falls back to offerRequest.sourceCountry when null. */
+    @Column(name = "pickup_area", length = 200)
+    private String pickupArea;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal discount;
+
+    @ElementCollection
+    @CollectionTable(name = "offer_proposal_meetup_places",
+            joinColumns = @JoinColumn(name = "offer_proposal_id"))
+    @Column(name = "place", nullable = false)
+    @Builder.Default
+    private List<String> meetupPlaces = new ArrayList<>();
+
+    @ElementCollection
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "offer_proposal_payment_methods",
+            joinColumns = @JoinColumn(name = "offer_proposal_id"))
+    @Column(name = "payment_method", nullable = false, length = 30)
+    @Builder.Default
+    private List<PaymentMethod> paymentMethods = new ArrayList<>();
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
