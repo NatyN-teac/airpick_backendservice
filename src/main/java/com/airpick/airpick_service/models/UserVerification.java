@@ -31,6 +31,10 @@ public class UserVerification {
     @Column(name = "verification_message", columnDefinition = "TEXT")
     private String verificationMessage;
 
+    /** Veriff verification session ID returned by POST /v1/sessions. */
+    @Column(name = "veriff_session_id", length = 255)
+    private String veriffSessionId;
+
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 

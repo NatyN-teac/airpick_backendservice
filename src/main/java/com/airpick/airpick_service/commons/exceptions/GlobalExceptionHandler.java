@@ -157,6 +157,9 @@ public class GlobalExceptionHandler {
         if (message.contains("not available"))        return ErrorCode.ITEM_NOT_AVAILABLE;
         if (message.contains("Receiver details"))     return ErrorCode.RECEIVER_DETAILS_REQUIRED;
         if (message.contains("does not belong"))      return ErrorCode.ACCESS_DENIED;
+        if (message.contains("Invalid Veriff webhook")) return ErrorCode.INVALID_WEBHOOK_SIGNATURE;
+        if (message.contains("already verified"))   return ErrorCode.USER_ALREADY_VERIFIED;
+        if (message.contains("Veriff integration is not configured")) return ErrorCode.INTERNAL_ERROR;
 
         return ErrorCode.INTERNAL_ERROR;
     }
@@ -168,7 +171,8 @@ public class GlobalExceptionHandler {
             case DUPLICATE_PROPOSAL             -> HttpStatus.CONFLICT;
             case USER_BLOCKED,
                  USER_INACTIVE,
-                 ACCESS_DENIED                  -> HttpStatus.FORBIDDEN;
+                 ACCESS_DENIED,
+                 INVALID_WEBHOOK_SIGNATURE      -> HttpStatus.FORBIDDEN;
             case USER_NOT_FOUND,
                  OFFER_NOT_FOUND,
                  MATCH_NOT_FOUND,
@@ -186,7 +190,8 @@ public class GlobalExceptionHandler {
                  ITEM_NOT_AVAILABLE,
                  RECEIVER_DETAILS_REQUIRED,
                  MODE_NOT_FOUND,
-                 ROLE_NOT_FOUND                 -> HttpStatus.BAD_REQUEST;
+                 ROLE_NOT_FOUND,
+                 USER_ALREADY_VERIFIED          -> HttpStatus.BAD_REQUEST;
             default                             -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
