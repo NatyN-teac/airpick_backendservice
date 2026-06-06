@@ -21,7 +21,7 @@ import java.util.UUID;
  * through the application destination.
  *
  * <pre>
- * Connect:     ws://host/ws
+ * Connect:     ws://host/api/v1/ws
  *              Header: Authorization: Bearer <jwt>
  *
  * Subscribe:   /topic/match/{matchId}/chat     — receive incoming messages
@@ -41,7 +41,7 @@ import java.util.UUID;
  * 1. CONNECT
  *    final client = StompClient(
  *      config: StompConfig.sockJS(
- *        url: 'https://your-api-host/ws',
+ *        url: 'https://your-api-host/api/v1/ws',
  *        onConnect: onConnectCallback,
  *        stompConnectHeaders: { 'Authorization': 'Bearer $jwtToken' },
  *        webSocketConnectHeaders: { 'Authorization': 'Bearer $jwtToken' },

@@ -33,7 +33,7 @@ import java.util.UUID;
                       "Create, update, and delete operations are intended for admin use."
 )
 @RestController
-@RequestMapping("/airports")
+@RequestMapping("/api/v1/airports")
 @RequiredArgsConstructor
 public class AirportController {
 

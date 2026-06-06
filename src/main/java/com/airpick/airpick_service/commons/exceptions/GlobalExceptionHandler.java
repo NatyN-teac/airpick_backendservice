@@ -3,6 +3,7 @@ package com.airpick.airpick_service.commons.exceptions;
 import com.airpick.airpick_service.dtos.output.ApiResponseDto;
 import com.airpick.airpick_service.dtos.output.ErrorDto;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,10 +34,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponseDto<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("[{}] Bad request: {}", originOf(ex), ex.getMessage(), ex);
-
         ErrorCode code = resolveErrorCode(ex.getMessage());
         HttpStatus status = resolveHttpStatus(code);
+
+        // Firebase token errors are frequent, expected client events — log without stack trace
+        if (code == ErrorCode.INVALID_FIREBASE_TOKEN) {
+            log.debug("[{}] Firebase token rejected: {}", originOf(ex), ex.getMessage());
+        } else {
+            log.warn("[{}] Bad request: {}", originOf(ex), ex.getMessage(), ex);
+        }
 
         return ResponseEntity.status(status)
                 .body(ApiResponseDto.error(ErrorDto.of(code, ex.getMessage())));
@@ -67,6 +73,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponseDto.error(ErrorDto.of(code, ex.getMessage())));
+    }
+
+    /**
+     * Client disconnected before the response was fully sent — nothing to write back.
+     * Log at DEBUG only; this is normal network noise, not an application error.
+     */
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbort(ClientAbortException ex) {
+        log.debug("Client disconnected before response was sent: {}", ex.getMessage());
+        // no response — the connection is already gone
     }
 
     /**

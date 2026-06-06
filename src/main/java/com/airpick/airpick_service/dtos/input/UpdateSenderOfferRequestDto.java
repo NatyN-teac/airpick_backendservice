@@ -3,7 +3,6 @@ package com.airpick.airpick_service.dtos.input;
 import com.airpick.airpick_service.models.UrgencyLevel;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 /**
  * Input DTO for updating a sender's offer request.
@@ -11,8 +10,7 @@ import java.util.UUID;
  * sourceCountry and destinationCountry cannot be changed after creation.
  */
 public record UpdateSenderOfferRequestDto(
-        UUID srcAirportId,
-        UUID destAirportId,
+        String sourceCity,
         LocalDate preferredDate,
         UrgencyLevel urgencyLevel,
         String specialNote,

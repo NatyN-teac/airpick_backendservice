@@ -40,7 +40,7 @@ import java.util.UUID;
                       "Each matched item has its own delivery status and full audit history."
 )
 @RestController
-@RequestMapping("/matches")
+@RequestMapping("/api/v1/matches")
 @RequiredArgsConstructor
 public class MatchController {
 

@@ -13,9 +13,10 @@ public interface OfferRequestRepository extends JpaRepository<OfferRequest, UUID
     @Query("SELECT r FROM OfferRequest r WHERE r.status = 'OPEN' ORDER BY r.createdAt DESC")
     List<OfferRequest> findAllOpen();
 
-    @Query("SELECT r FROM OfferRequest r WHERE r.shipper.id = :shipperId ORDER BY r.createdAt DESC")
+    @Query("SELECT r FROM OfferRequest r WHERE r.shipper.id = :shipperId AND r.status != 'CANCELLED' ORDER BY r.createdAt DESC")
     List<OfferRequest> findAllByShipperId(@Param("shipperId") UUID shipperId);
 
-    @Query("SELECT r FROM OfferRequest r WHERE r.status = 'OPEN' AND r.shipper.id != :shipperId ORDER BY r.createdAt DESC")
+    // TODO: remove the own requests inclusion below when testing is done — revert to excluding shipper's own requests
+    @Query("SELECT r FROM OfferRequest r WHERE r.status = 'OPEN' ORDER BY r.createdAt DESC")
     List<OfferRequest> findAllOpenExcludingShipper(@Param("shipperId") UUID shipperId);
 }

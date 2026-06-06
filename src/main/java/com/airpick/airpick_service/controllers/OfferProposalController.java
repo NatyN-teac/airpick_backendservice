@@ -64,7 +64,7 @@ public class OfferProposalController {
             @ApiResponse(responseCode = "404", description = "Offer request not found"),
             @ApiResponse(responseCode = "409", description = "Carrier already has an active proposal on this request")
     })
-    @PostMapping("/offer-requests/{requestId}/proposals")
+    @PostMapping("/api/v1/offer-requests/{requestId}/proposals")
     public ResponseEntity<ApiResponseDto<OfferProposalResponseDto>> submitProposal(
             @AuthenticationPrincipal UserDetailsImpl principal,
             @Parameter(description = "Offer request ID") @PathVariable UUID requestId,
@@ -85,7 +85,7 @@ public class OfferProposalController {
             @ApiResponse(responseCode = "403", description = "Proposal belongs to another carrier"),
             @ApiResponse(responseCode = "404", description = "Proposal not found")
     })
-    @DeleteMapping("/offer-requests/proposals/{proposalId}/withdraw")
+    @DeleteMapping("/api/v1/offer-requests/proposals/{proposalId}/withdraw")
     public ResponseEntity<Void> withdrawProposal(
             @AuthenticationPrincipal UserDetailsImpl principal,
             @Parameter(description = "Proposal ID") @PathVariable UUID proposalId) {
@@ -109,7 +109,7 @@ public class OfferProposalController {
             @ApiResponse(responseCode = "403", description = "Request belongs to another sender"),
             @ApiResponse(responseCode = "404", description = "Proposal not found")
     })
-    @PatchMapping("/offer-requests/proposals/{proposalId}/reject")
+    @PatchMapping("/api/v1/offer-requests/proposals/{proposalId}/reject")
     public ResponseEntity<Void> rejectProposal(
             @AuthenticationPrincipal UserDetailsImpl principal,
             @Parameter(description = "Proposal ID") @PathVariable UUID proposalId) {
@@ -138,7 +138,7 @@ public class OfferProposalController {
             @ApiResponse(responseCode = "403", description = "Request belongs to another sender"),
             @ApiResponse(responseCode = "404", description = "Proposal not found")
     })
-    @PostMapping("/offer-requests/proposals/{proposalId}/accept")
+    @PostMapping("/api/v1/offer-requests/proposals/{proposalId}/accept")
     public ResponseEntity<ApiResponseDto<MatchResponseDto>> acceptProposal(
             @AuthenticationPrincipal UserDetailsImpl principal,
             @Parameter(description = "Proposal ID") @PathVariable UUID proposalId,
@@ -163,7 +163,7 @@ public class OfferProposalController {
             @ApiResponse(responseCode = "403", description = "Request belongs to another sender"),
             @ApiResponse(responseCode = "404", description = "Offer request not found")
     })
-    @GetMapping("/offer-requests/{requestId}/proposals")
+    @GetMapping("/api/v1/offer-requests/{requestId}/proposals")
     public ResponseEntity<ApiResponseDto<List<OfferProposalResponseDto>>> getProposalsForRequest(
             @AuthenticationPrincipal UserDetailsImpl principal,
             @Parameter(description = "Offer request ID") @PathVariable UUID requestId) {
@@ -176,7 +176,7 @@ public class OfferProposalController {
             summary = "Get my proposals",
             description = "Returns all proposals submitted by the authenticated carrier, in all statuses."
     )
-    @GetMapping("/proposals/me")
+    @GetMapping("/api/v1/proposals/me")
     public ResponseEntity<ApiResponseDto<List<OfferProposalResponseDto>>> getMyProposals(
             @AuthenticationPrincipal UserDetailsImpl principal) {
 

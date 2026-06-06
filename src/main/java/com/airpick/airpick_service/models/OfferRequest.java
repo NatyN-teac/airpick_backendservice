@@ -38,18 +38,11 @@ public class OfferRequest {
     @Column(name = "source_country", nullable = false, length = 100)
     private String sourceCountry;
 
+    @Column(name = "source_city", nullable = false, length = 100)
+    private String sourceCity;
+
     @Column(name = "destination_country", nullable = false, length = 100)
     private String destinationCountry;
-
-    /** Optional — more precise than country alone. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "src_airport_id")
-    private Airport srcAirport;
-
-    /** Optional — more precise than country alone. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dest_airport_id")
-    private Airport destAirport;
 
     @Column(name = "preferred_date")
     private LocalDate preferredDate;
@@ -72,6 +65,15 @@ public class OfferRequest {
      */
     @Column(name = "partial_proposal_accepted", nullable = false)
     private boolean partialProposalAccepted = false;
+
+    /**
+     * True when at least one requested item was manually submitted by a carrier and
+     * is pending admin approval. The request stays in PENDING_ITEM_APPROVAL until
+     * all manual items are approved, then transitions to OPEN automatically.
+     */
+    @Column(name = "has_manual_item", nullable = false)
+    @Builder.Default
+    private boolean hasManualItem = false;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

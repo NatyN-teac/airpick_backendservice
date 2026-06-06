@@ -68,7 +68,7 @@ public record OfferProposalResponseDto(
                 p.getPickupArea() != null ? p.getPickupArea() : p.getOfferRequest().getSourceCountry(),
                 p.getDiscount(),
                 p.getMeetupPlaces(),
-                p.getPaymentMethods().stream().map(Enum::name).toList(),
+                p.getPaymentMethods(),
                 p.getNote(),
                 itemDtos,
                 totalPrice,

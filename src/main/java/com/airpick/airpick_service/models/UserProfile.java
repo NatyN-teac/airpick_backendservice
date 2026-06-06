@@ -3,6 +3,7 @@ package com.airpick.airpick_service.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -48,6 +49,10 @@ public class UserProfile {
 
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    /** Optional date of birth. */
+    @Column(name = "dob")
+    private LocalDate dob;
 
     @OneToOne(mappedBy = "userProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserVerification userVerification;

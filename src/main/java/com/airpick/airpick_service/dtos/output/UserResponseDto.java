@@ -3,6 +3,7 @@ package com.airpick.airpick_service.dtos.output;
 import com.airpick.airpick_service.models.User;
 import com.airpick.airpick_service.models.UserProfile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -11,6 +12,7 @@ public record UserResponseDto(
         String email,
         String providerId,
         String role,
+        String activeMode,
         boolean isActiveUser,
         boolean isBlocked,
         LocalDateTime createdAt,
@@ -29,6 +31,7 @@ public record UserResponseDto(
             String country,
             String profilePictureUrl,
             String bio,
+            LocalDate dob,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
@@ -45,6 +48,7 @@ public record UserResponseDto(
                     p.getCountry(),
                     p.getProfilePictureUrl(),
                     p.getBio(),
+                    p.getDob(),
                     p.getCreatedAt(),
                     p.getUpdatedAt()
             );
@@ -57,6 +61,7 @@ public record UserResponseDto(
                 user.getEmail(),
                 user.getProviderId(),
                 user.getRole().getName(),
+                user.getActiveMode() != null ? user.getActiveMode().getName() : null,
                 user.isActiveUser(),
                 user.isBlocked(),
                 user.getCreatedAt(),

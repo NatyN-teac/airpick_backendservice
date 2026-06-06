@@ -60,6 +60,7 @@ public class OfferProposalService {
     private final MatchReceiverRepository matchReceiverRepository;
     private final ChatRepository chatRepository;
     private final FlightRepository flightRepository;
+    private final AirportRepository airportRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -101,12 +102,11 @@ public class OfferProposalService {
             throw new IllegalArgumentException("Proposal must include at least one item");
         }
 
-        Flight flight = flightRepository.findById(dto.flightId())
-                .orElseThrow(() -> new IllegalArgumentException("Flight not found: " + dto.flightId()));
-
-        if (!flight.getUser().getId().equals(carrier.getId())) {
-            throw new IllegalArgumentException("Flight does not belong to this carrier");
+        if (dto.flight() == null) {
+            throw new IllegalArgumentException("Flight details are required");
         }
+
+        Flight flight = createFlightForProposal(carrier, dto.flight());
 
         validateItemCoverage(offerRequest, dto);
 
@@ -414,6 +414,51 @@ public class OfferProposalService {
             throw new IllegalArgumentException("Proposal does not belong to this shipper");
         }
         return proposal;
+    }
+
+    /**
+     * Creates a new flight for the carrier as part of the proposal submission.
+     * Runs within the same transaction — rolled back if anything else fails.
+     */
+    private Flight createFlightForProposal(User carrier, SubmitProposalRequestDto.FlightDto dto) {
+        int expectedLegs = dto.flightType() == FlightType.ONE_WAY ? 1 : 2;
+        if (dto.legs() == null || dto.legs().size() != expectedLegs) {
+            throw new IllegalArgumentException(
+                    dto.flightType().name() + " flight requires exactly " + expectedLegs + " leg(s)");
+        }
+
+        Flight flight = Flight.builder()
+                .user(carrier)
+                .flightType(dto.flightType())
+                .isBooked(false)
+                .isDeleted(false)
+                .legs(new ArrayList<>())
+                .build();
+
+        List<FlightLeg> legs = new ArrayList<>();
+        for (int i = 0; i < dto.legs().size(); i++) {
+            SubmitProposalRequestDto.LegDto leg = dto.legs().get(i);
+            Airport src = airportRepository.findActiveById(leg.srcAirportId())
+                    .orElseThrow(() -> new IllegalArgumentException("Airport not found: " + leg.srcAirportId()));
+            Airport dest = airportRepository.findActiveById(leg.destAirportId())
+                    .orElseThrow(() -> new IllegalArgumentException("Airport not found: " + leg.destAirportId()));
+
+            legs.add(FlightLeg.builder()
+                    .flight(flight)
+                    .legOrder(i + 1)
+                    .srcAirport(src)
+                    .destAirport(dest)
+                    .departureDate(leg.departureDate())
+                    .departureTime(leg.departureTime())
+                    .arrivalDate(leg.arrivalDate())
+                    .arrivalTime(leg.arrivalTime())
+                    .build());
+        }
+
+        flight.getLegs().addAll(legs);
+        Flight saved = flightRepository.save(flight);
+        log.info("Flight {} created atomically with proposal", saved.getId());
+        return saved;
     }
 
     /**

@@ -31,7 +31,6 @@ public class FirebaseTokenService {
         try {
             return FirebaseAuth.getInstance().verifyIdToken(token);
         } catch (FirebaseAuthException e) {
-            log.warn("Firebase token verification failed: {}", e.getMessage());
             throw new IllegalArgumentException("Invalid or expired Firebase token", e);
         }
     }

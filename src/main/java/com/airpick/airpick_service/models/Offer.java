@@ -54,6 +54,19 @@ public class Offer {
     @JoinColumn(name = "offer_request_id")
     private OfferRequest offerRequest;
 
+    /** ISO 4217 currency code for all item prices on this offer (e.g. USD, EUR, NGN). */
+    @Column(name = "currency", nullable = false, length = 10)
+    private String currency;
+
+    /**
+     * True when at least one offer item was manually submitted by a carrier and
+     * is pending admin approval. The offer stays in PENDING_ITEM_APPROVAL until
+     * all manual items are approved, then transitions to OPEN automatically.
+     */
+    @Column(name = "has_manual_item", nullable = false)
+    @Builder.Default
+    private boolean hasManualItem = false;
+
     @Column(name = "delivery_area", nullable = false, length = 200)
     private String deliveryArea;
 
@@ -79,11 +92,10 @@ public class Offer {
     private List<String> meetupPlaces = new ArrayList<>();
 
     @ElementCollection
-    @Enumerated(EnumType.STRING)
     @CollectionTable(name = "offer_payment_methods", joinColumns = @JoinColumn(name = "offer_id"))
-    @Column(name = "payment_method", nullable = false, length = 30)
+    @Column(name = "payment_method", nullable = false, length = 100)
     @Builder.Default
-    private List<PaymentMethod> paymentMethods = new ArrayList<>();
+    private List<String> paymentMethods = new ArrayList<>();
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

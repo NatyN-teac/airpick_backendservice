@@ -1,0 +1,1 @@
+ALTER TABLE offer_requests ADD COLUMN has_manual_item BOOLEAN NOT NULL DEFAULT FALSE;

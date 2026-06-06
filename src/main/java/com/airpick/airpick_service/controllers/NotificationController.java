@@ -47,7 +47,7 @@ import java.util.UUID;
                       "Each notification carries refType + refId for deep-link navigation."
 )
 @RestController
-@RequestMapping("/notifications")
+@RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 

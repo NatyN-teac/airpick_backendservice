@@ -12,7 +12,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 /**
  * STOMP over WebSocket configuration.
  * <p>
- * Clients connect to /ws (with SockJS fallback).
+ * Clients connect to /api/v1/ws (with SockJS fallback).
  * Messages sent to /app/... are routed to @MessageMapping methods.
  * Messages sent to /topic/... or /queue/... are delivered via the in-memory broker.
  * User-specific messages use /user/... prefix (Spring rewrites per connected principal).
@@ -36,7 +36,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws")
+        registry.addEndpoint("/api/v1/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS(); // SockJS fallback for environments that block raw WebSocket
     }

@@ -72,12 +72,11 @@ public class OfferProposal {
     private List<String> meetupPlaces = new ArrayList<>();
 
     @ElementCollection
-    @Enumerated(EnumType.STRING)
     @CollectionTable(name = "offer_proposal_payment_methods",
             joinColumns = @JoinColumn(name = "offer_proposal_id"))
-    @Column(name = "payment_method", nullable = false, length = 30)
+    @Column(name = "payment_method", nullable = false, length = 100)
     @Builder.Default
-    private List<PaymentMethod> paymentMethods = new ArrayList<>();
+    private List<String> paymentMethods = new ArrayList<>();
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

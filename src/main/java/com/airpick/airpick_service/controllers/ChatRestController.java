@@ -32,7 +32,7 @@ import java.util.UUID;
                       "Use these REST endpoints to load history on app open and to mark messages as read."
 )
 @RestController
-@RequestMapping("/chats")
+@RequestMapping("/api/v1/chats")
 @RequiredArgsConstructor
 public class ChatRestController {
 

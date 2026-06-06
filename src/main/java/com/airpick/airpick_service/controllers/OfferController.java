@@ -38,7 +38,7 @@ import java.util.UUID;
                       "(own offers are always excluded from browse results)."
 )
 @RestController
-@RequestMapping("/offers")
+@RequestMapping("/api/v1/offers")
 @RequiredArgsConstructor
 public class OfferController {
 

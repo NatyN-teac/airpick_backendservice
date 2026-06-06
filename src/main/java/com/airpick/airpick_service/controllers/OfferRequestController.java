@@ -38,7 +38,7 @@ import java.util.UUID;
                       "When the sender accepts a proposal, an Offer and Match are created atomically."
 )
 @RestController
-@RequestMapping("/offer-requests")
+@RequestMapping("/api/v1/offer-requests")
 @RequiredArgsConstructor
 public class OfferRequestController {
 

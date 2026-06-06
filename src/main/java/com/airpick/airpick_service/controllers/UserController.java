@@ -6,10 +6,12 @@ import com.airpick.airpick_service.dtos.input.RegisterRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateModeRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateUserRequestDto;
 import com.airpick.airpick_service.dtos.output.ApiResponseDto;
+import com.airpick.airpick_service.dtos.output.UserProfileResponseDto;
 import com.airpick.airpick_service.dtos.output.UserResponseDto;
 import com.airpick.airpick_service.services.UserDeviceService;
 import com.airpick.airpick_service.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,6 +23,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 /**
  * REST controller that exposes user-related API endpoints.
@@ -37,7 +41,7 @@ import org.springframework.web.bind.annotation.*;
                       "the user, and returns a signed JWT for all subsequent requests."
 )
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -150,12 +154,51 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
             )
     })
-    @PatchMapping("/update")
+    @PutMapping("/update")
     public ResponseEntity<ApiResponseDto<UserResponseDto>> updateProfile(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody UpdateUserRequestDto request) {
         UserResponseDto user = userService.updateProfile(userDetails.getUsername(), request);
         return ResponseEntity.ok(ApiResponseDto.ok(user));
+    }
+
+    @Operation(
+            summary = "Get user profile by ID",
+            description = """
+                    Returns the public profile details for the user with the given ID. \
+                    Intended for viewing carrier or shipper profiles in the marketplace \
+                    (e.g. from a match or offer).
+
+                    Requires a valid `Bearer` JWT token in the `Authorization` header.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Profile retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Missing or invalid JWT token",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User or profile not found",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Unexpected server error",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+            )
+    })
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<ApiResponseDto<UserProfileResponseDto>> getProfileByUserId(
+            @Parameter(description = "User ID") @PathVariable UUID userId) {
+        UserProfileResponseDto profile = userService.getProfileByUserId(userId);
+        return ResponseEntity.ok(ApiResponseDto.ok(profile));
     }
 
     /**

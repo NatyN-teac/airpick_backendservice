@@ -1,5 +1,7 @@
 package com.airpick.airpick_service.dtos.input;
 
+import java.time.LocalDate;
+
 /**
  * Input DTO for updating a user's profile information.
  * <p>
@@ -14,5 +16,6 @@ public record UpdateUserRequestDto(
         String state,
         String country,
         String bio,
-        String profilePictureUrl
+        String profilePictureUrl,
+        LocalDate dob
 ) {}

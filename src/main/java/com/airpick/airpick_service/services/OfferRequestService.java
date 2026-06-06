@@ -29,7 +29,6 @@ public class OfferRequestService {
 
     private final OfferRequestRepository offerRequestRepository;
     private final UserRepository userRepository;
-    private final AirportRepository airportRepository;
     private final ItemRepository itemRepository;
 
     // -------------------------------------------------------------------------
@@ -46,16 +45,15 @@ public class OfferRequestService {
         if (dto.items() == null || dto.items().isEmpty()) {
             throw new IllegalArgumentException("Offer request must have at least one item");
         }
-
-        Airport srcAirport = resolveAirport(dto.srcAirportId());
-        Airport destAirport = resolveAirport(dto.destAirportId());
+        if (dto.sourceCity() == null || dto.sourceCity().isBlank()) {
+            throw new IllegalArgumentException("Source city is required");
+        }
 
         OfferRequest request = OfferRequest.builder()
                 .shipper(shipper)
                 .sourceCountry(dto.sourceCountry())
+                .sourceCity(dto.sourceCity())
                 .destinationCountry(dto.destinationCountry())
-                .srcAirport(srcAirport)
-                .destAirport(destAirport)
                 .preferredDate(dto.preferredDate())
                 .urgencyLevel(dto.urgencyLevel())
                 .specialNote(dto.specialNote())
@@ -68,6 +66,12 @@ public class OfferRequestService {
         List<OfferRequestItem> items = dto.items().stream()
                 .map(itemDto -> buildRequestItem(request, itemDto))
                 .toList();
+
+        boolean hasManualItem = items.stream()
+                .anyMatch(i -> i.getItem().getCreatedBy() != null);
+
+        request.setHasManualItem(hasManualItem);
+        request.setStatus(hasManualItem ? OfferRequestStatus.PENDING_ITEM_APPROVAL : OfferRequestStatus.OPEN);
         request.getItems().addAll(items);
 
         OfferRequest saved = offerRequestRepository.save(request);
@@ -90,8 +94,7 @@ public class OfferRequestService {
             throw new IllegalStateException("Cannot update an offer request with status: " + request.getStatus());
         }
 
-        if (dto.srcAirportId() != null) request.setSrcAirport(resolveAirport(dto.srcAirportId()));
-        if (dto.destAirportId() != null) request.setDestAirport(resolveAirport(dto.destAirportId()));
+        if (dto.sourceCity() != null) request.setSourceCity(dto.sourceCity());
         if (dto.preferredDate() != null) request.setPreferredDate(dto.preferredDate());
         if (dto.urgencyLevel() != null) request.setUrgencyLevel(dto.urgencyLevel());
         if (dto.specialNote() != null) request.setSpecialNote(dto.specialNote());
@@ -175,12 +178,6 @@ public class OfferRequestService {
             throw new IllegalArgumentException("Offer request does not belong to this user");
         }
         return request;
-    }
-
-    private Airport resolveAirport(UUID airportId) {
-        if (airportId == null) return null;
-        return airportRepository.findById(airportId)
-                .orElseThrow(() -> new IllegalArgumentException("Airport not found: " + airportId));
     }
 
     private OfferRequestItem buildRequestItem(OfferRequest request, CreateSenderOfferRequestDto.RequestItemDto dto) {

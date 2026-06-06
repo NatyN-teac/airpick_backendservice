@@ -58,11 +58,17 @@ public class OfferService {
             throw new IllegalArgumentException("An active offer already exists for flight: " + flight.getId());
         });
 
+        List<OfferItem> builtItems = buildOfferItems(null, request.items());
+        boolean hasManualItem = builtItems.stream()
+                .anyMatch(oi -> oi.getItem().getCreatedBy() != null);
+
         Offer offer = Offer.builder()
                 .carrier(carrier)
                 .flight(flight)
                 .offerSource(OfferSource.DIRECT)
-                .status(OfferStatus.OPEN)
+                .status(hasManualItem ? OfferStatus.PENDING_ITEM_APPROVAL : OfferStatus.OPEN)
+                .hasManualItem(hasManualItem)
+                .currency(request.currency())
                 .deliveryArea(request.deliveryArea())
                 .pickupArea(request.pickupArea())
                 .urgencyLevel(request.urgencyLevel())
@@ -75,11 +81,11 @@ public class OfferService {
 
         Offer saved = offerRepository.save(offer);
 
-        List<OfferItem> items = buildOfferItems(saved, request.items());
-        saved.getOfferItems().addAll(items);
-        offerItemRepository.saveAll(items);
+        builtItems.forEach(oi -> oi.setOffer(saved));
+        saved.getOfferItems().addAll(builtItems);
+        offerItemRepository.saveAll(builtItems);
 
-        log.info("Offer created with id: {}", saved.getId());
+        log.info("Offer created with id: {}, status: {}", saved.getId(), saved.getStatus());
         return OfferResponseDto.from(saved);
     }
 
@@ -106,6 +112,7 @@ public class OfferService {
                     "Offer cannot be updated in status: " + offer.getStatus());
         }
 
+        if (request.currency()       != null) offer.setCurrency(request.currency());
         if (request.deliveryArea()   != null) offer.setDeliveryArea(request.deliveryArea());
         if (request.pickupArea()     != null) offer.setPickupArea(request.pickupArea());
         if (request.urgencyLevel()   != null) offer.setUrgencyLevel(request.urgencyLevel());
@@ -347,7 +354,7 @@ public class OfferService {
         for (CreateOfferRequestDto.OfferItemDto dto : dtos) {
             Item item = resolveItem(dto.itemId());
             items.add(OfferItem.builder()
-                    .offer(offer)
+                    .offer(offer)   // may be null at detection stage; caller sets it before save
                     .item(item)
                     .quantity(dto.quantity())
                     .remainingQuantity(dto.quantity())

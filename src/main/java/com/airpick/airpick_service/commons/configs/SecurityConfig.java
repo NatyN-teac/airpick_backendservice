@@ -33,15 +33,15 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/users/register").permitAll()
-                        .requestMatchers("/airports").permitAll() // TODO: remove after testing
+                        .requestMatchers("/api/v1/users/register").permitAll()
+                        .requestMatchers("/api/v1/airports").permitAll() // TODO: remove after testing
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
                         // WebSocket HTTP handshake — JWT validation is handled by WebSocketAuthInterceptor
-                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/v1/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

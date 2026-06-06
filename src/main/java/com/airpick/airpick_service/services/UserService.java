@@ -4,6 +4,7 @@ import com.airpick.airpick_service.commons.security.FirebaseTokenService;
 import com.airpick.airpick_service.commons.security.JwtUtil;
 import com.airpick.airpick_service.dtos.input.UpdateModeRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateUserRequestDto;
+import com.airpick.airpick_service.dtos.output.UserProfileResponseDto;
 import com.airpick.airpick_service.dtos.output.UserResponseDto;
 import com.airpick.airpick_service.factories.UserFactory;
 import com.airpick.airpick_service.models.*;
@@ -105,6 +106,7 @@ public class UserService {
         if (request.country()            != null) profile.setCountry(request.country());
         if (request.bio()                != null) profile.setBio(request.bio());
         if (request.profilePictureUrl()  != null) profile.setProfilePictureUrl(request.profilePictureUrl());
+        if (request.dob()                != null) profile.setDob(request.dob());
 
         userProfileRepository.save(profile);
         log.info("Profile updated for user id: {}", user.getId());
@@ -137,6 +139,30 @@ public class UserService {
         log.info("Mode updated to {} for user id: {}", request.mode(), user.getId());
 
         return UserResponseDto.from(user, null);
+    }
+
+    /**
+     * Returns the profile for the given user ID.
+     *
+     * @param userId the user's primary key
+     * @return the user's profile as a response DTO
+     * @throws IllegalArgumentException if the user or profile does not exist
+     */
+    @Transactional(readOnly = true)
+    public UserProfileResponseDto getProfileByUserId(UUID userId) {
+        log.info("Fetching profile for user id: {}", userId);
+
+        if (!userRepository.existsById(userId)) {
+            throw new IllegalArgumentException("User not found: " + userId);
+        }
+
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> {
+                    log.warn("Profile not found for user id: {}", userId);
+                    return new IllegalArgumentException("User not found: " + userId);
+                });
+
+        return UserProfileResponseDto.from(profile);
     }
 
     /**

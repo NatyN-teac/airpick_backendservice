@@ -36,7 +36,7 @@ import java.util.UUID;
                       "All endpoints require a valid Bearer JWT."
 )
 @RestController
-@RequestMapping("/flights")
+@RequestMapping("/api/v1/flights")
 @RequiredArgsConstructor
 public class FlightController {
 
