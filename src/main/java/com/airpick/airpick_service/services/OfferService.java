@@ -6,6 +6,7 @@ import com.airpick.airpick_service.dtos.output.OfferResponseDto;
 import com.airpick.airpick_service.models.*;
 import com.airpick.airpick_service.repositories.FlightRepository;
 import com.airpick.airpick_service.repositories.ItemRepository;
+import com.airpick.airpick_service.repositories.MatchRepository;
 import com.airpick.airpick_service.repositories.OfferItemRepository;
 import com.airpick.airpick_service.repositories.OfferRepository;
 import com.airpick.airpick_service.repositories.UserRepository;
@@ -34,6 +35,8 @@ public class OfferService {
     private final FlightRepository flightRepository;
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
+    private final MatchRepository matchRepository;
+    private final NotificationService notificationService;
 
     /**
      * Creates a new DIRECT offer for the authenticated carrier.
@@ -155,6 +158,11 @@ public class OfferService {
 
         offer.setStatus(OfferStatus.CANCELLED);
         offerRepository.save(offer);
+
+        matchRepository.findAllByOfferId(offerId).stream()
+                .filter(m -> m.getStatus() == MatchStatus.PENDING || m.getStatus() == MatchStatus.ACCEPTED)
+                .forEach(m -> notificationService.notifyOfferCancelled(m.getShipper(), offer));
+
         log.info("Offer cancelled: {}", offerId);
     }
 

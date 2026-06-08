@@ -174,6 +174,7 @@ public class OfferProposalService {
 
         proposal.setStatus(OfferProposalStatus.WITHDRAWN);
         offerProposalRepository.save(proposal);
+        notificationService.notifyProposalWithdrawn(proposal);
         log.info("Proposal {} withdrawn by carrier: {}", proposalId, email);
     }
 
@@ -193,6 +194,7 @@ public class OfferProposalService {
 
         proposal.setStatus(OfferProposalStatus.REJECTED);
         offerProposalRepository.save(proposal);
+        notificationService.notifyProposalRejected(proposal);
         log.info("Proposal {} rejected by shipper: {}", proposalId, email);
     }
 
@@ -228,6 +230,7 @@ public class OfferProposalService {
                 .toList();
         otherPending.forEach(p -> p.setStatus(OfferProposalStatus.REJECTED));
         offerProposalRepository.saveAll(otherPending);
+        otherPending.forEach(notificationService::notifyProposalRejected);
         log.info("Rejected {} other proposals on request {}", otherPending.size(), offerRequest.getId());
 
         // 2. Mark offer request as ACCEPTED

@@ -25,9 +25,6 @@ import java.util.UUID;
  *   <li>{@code title} / {@code body} — for display in Flutter local notifications</li>
  *   <li>{@code refType} / {@code refId} — the deep-link target (e.g. "MATCH" + matchId)</li>
  * </ul>
- * <p>
- * WebSocket is NOT used here. WebSocket is used exclusively for real-time chat
- * messages in {@link ChatService}.
  */
 @Slf4j
 @Service
@@ -38,8 +35,36 @@ public class NotificationService {
     private final PushNotificationService pushNotificationService;
 
     // -------------------------------------------------------------------------
+    // Account
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public void notifyWelcome(User user) {
+        createAndSend(
+                user,
+                NotificationType.WELCOME,
+                "Welcome to Airpick",
+                "Your account is ready. Browse offers, send requests, and start shipping with confidence.",
+                RefType.USER,
+                user.getId()
+        );
+    }
+
+    // -------------------------------------------------------------------------
     // Match lifecycle notifications
     // -------------------------------------------------------------------------
+
+    @Transactional
+    public void notifyMatchCreated(Match match) {
+        createAndSend(
+                match.getCarrier(),
+                NotificationType.MATCH_CREATED,
+                "New Match Request",
+                "A shipper has requested to match your offer. Review and accept or reject the request.",
+                RefType.MATCH,
+                match.getId()
+        );
+    }
 
     @Transactional
     public void notifyMatchAccepted(Match match) {
@@ -83,6 +108,70 @@ public class NotificationService {
         );
     }
 
+    @Transactional
+    public void notifyMatchInProgress(Match match) {
+        createAndSend(
+                match.getShipper(),
+                NotificationType.MATCH_IN_PROGRESS,
+                "Delivery Started",
+                "The carrier has picked up your items and started delivery.",
+                RefType.MATCH,
+                match.getId()
+        );
+    }
+
+    @Transactional
+    public void notifyMatchDelivered(Match match) {
+        createAndSend(
+                match.getShipper(),
+                NotificationType.MATCH_DELIVERED,
+                "Delivery Complete",
+                "Your items have been delivered. Thank you for using Airpick.",
+                RefType.MATCH,
+                match.getId()
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Offer lifecycle notifications
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public void notifyOfferFullyMatched(User carrier, Offer offer) {
+        createAndSend(
+                carrier,
+                NotificationType.OFFER_FULLY_MATCHED,
+                "Offer Fully Matched",
+                "All slots on your offer have been matched. No remaining capacity is available.",
+                RefType.OFFER,
+                offer.getId()
+        );
+    }
+
+    @Transactional
+    public void notifyOfferCancelled(User shipper, Offer offer) {
+        createAndSend(
+                shipper,
+                NotificationType.OFFER_CANCELLED,
+                "Offer Cancelled",
+                "The carrier has cancelled the offer you matched with. Your pending match has been affected.",
+                RefType.OFFER,
+                offer.getId()
+        );
+    }
+
+    @Transactional
+    public void notifyOfferRequestCancelled(User carrier, OfferRequest request) {
+        createAndSend(
+                carrier,
+                NotificationType.OFFER_REQUEST_CANCELLED,
+                "Request Cancelled",
+                "The sender has cancelled an offer request you submitted a proposal on.",
+                RefType.OFFER_REQUEST,
+                request.getId()
+        );
+    }
+
     // -------------------------------------------------------------------------
     // Proposal lifecycle notifications
     // -------------------------------------------------------------------------
@@ -108,6 +197,30 @@ public class NotificationService {
                 "The sender has accepted your proposal. A match has been created and your chat room is open.",
                 RefType.MATCH,
                 matchId
+        );
+    }
+
+    @Transactional
+    public void notifyProposalRejected(OfferProposal proposal) {
+        createAndSend(
+                proposal.getCarrier(),
+                NotificationType.PROPOSAL_REJECTED,
+                "Proposal Declined",
+                "The sender has declined your proposal on their offer request.",
+                RefType.PROPOSAL,
+                proposal.getId()
+        );
+    }
+
+    @Transactional
+    public void notifyProposalWithdrawn(OfferProposal proposal) {
+        createAndSend(
+                proposal.getOfferRequest().getShipper(),
+                NotificationType.PROPOSAL_WITHDRAWN,
+                "Proposal Withdrawn",
+                "A carrier has withdrawn their proposal on your offer request.",
+                RefType.OFFER_REQUEST,
+                proposal.getOfferRequest().getId()
         );
     }
 
@@ -198,8 +311,6 @@ public class NotificationService {
                 "refId",          refId != null ? refId.toString() : ""
         );
 
-        // FCM is best-effort — a push failure must never roll back the calling business transaction.
-        // The notification is already persisted; the client can fetch it from the inbox on next open.
         try {
             pushNotificationService.sendToUser(recipient.getId(), fcmData);
         } catch (Exception e) {

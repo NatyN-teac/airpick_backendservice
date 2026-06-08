@@ -37,6 +37,7 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final FirebaseTokenService firebaseTokenService;
     private final UserFactory userFactory;
+    private final NotificationService notificationService;
 
     /**
      * Registers a new user or authenticates a returning user using a Firebase ID token.
@@ -255,6 +256,8 @@ public class UserService {
         User user = userFactory.buildNewUser(email, providerId, picture, customerRole, activeMode);
         User saved = userRepository.save(user);
         log.info("New user registered successfully with id: {}", saved.getId());
+
+        notificationService.notifyWelcome(saved);
 
         String token = jwtUtil.generateToken(email);
         return UserResponseDto.from(saved, token);

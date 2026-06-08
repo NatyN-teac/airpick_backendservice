@@ -203,6 +203,12 @@ public class MatchService {
 
         // NOTE: Chat is created in acceptMatch, not here.
         log.info("Match {} created with totalPrice={} for offer {}", savedMatch.getId(), totalPrice, offer.getId());
+
+        notificationService.notifyMatchCreated(savedMatch);
+        if (allExhausted) {
+            notificationService.notifyOfferFullyMatched(carrier, offer);
+        }
+
         return MatchResponseDto.from(savedMatch);
     }
 
@@ -333,6 +339,8 @@ public class MatchService {
         matchRepository.save(match);
         recordMatchTransition(match, MatchStatus.ACCEPTED, MatchStatus.IN_PROGRESS, carrier, "Items collected by carrier");
 
+        notificationService.notifyMatchInProgress(match);
+
         log.info("Match {} started (IN_PROGRESS) by carrier {}", matchId, carrierEmail);
         return MatchResponseDto.from(match);
     }
@@ -370,6 +378,8 @@ public class MatchService {
                 recordMatchedItemTransition(mi, prev, MatchedItemStatus.DELIVERED, carrier, "Marked delivered on match completion");
             }
         }
+
+        notificationService.notifyMatchDelivered(match);
 
         log.info("Match {} completed by carrier {}", matchId, carrierEmail);
         return MatchResponseDto.from(match);

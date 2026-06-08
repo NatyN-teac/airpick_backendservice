@@ -30,6 +30,8 @@ public class OfferRequestService {
     private final OfferRequestRepository offerRequestRepository;
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
+    private final OfferProposalRepository offerProposalRepository;
+    private final NotificationService notificationService;
 
     // -------------------------------------------------------------------------
     // Sender — create request
@@ -124,6 +126,11 @@ public class OfferRequestService {
 
         request.setStatus(OfferRequestStatus.CANCELLED);
         offerRequestRepository.save(request);
+
+        offerProposalRepository.findAllByOfferRequestId(id).stream()
+                .filter(p -> p.getStatus() == OfferProposalStatus.PENDING)
+                .forEach(p -> notificationService.notifyOfferRequestCancelled(p.getCarrier(), request));
+
         log.info("Offer request cancelled: {}", id);
     }
 
