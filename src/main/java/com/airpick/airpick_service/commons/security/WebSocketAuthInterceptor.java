@@ -35,11 +35,20 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor =
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null || !StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null) {
+            log.info("===>>> WS interceptor — accessor is null, passing through");
+            return message;
+        }
+
+        log.info("===>>> WS interceptor — STOMP command: {} destination: {}",
+                accessor.getCommand(), accessor.getDestination());
+
+        if (!StompCommand.CONNECT.equals(accessor.getCommand())) {
             return message; // only validate on CONNECT
         }
 
         String authHeader = accessor.getFirstNativeHeader("Authorization");
+        log.info("===>>> WS CONNECT — Authorization header present: {}", authHeader != null);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.warn("WebSocket CONNECT rejected — missing or malformed Authorization header");
@@ -60,7 +69,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
         accessor.setUser(auth);
-        log.debug("WebSocket CONNECT authenticated for user: {}", email);
+        log.info("===>>> WS CONNECT authenticated for user: {}", email);
 
         return message;
     }

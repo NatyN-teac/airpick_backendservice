@@ -1,6 +1,8 @@
 package com.airpick.airpick_service.repositories;
 
 import com.airpick.airpick_service.models.OfferProposal;
+import com.airpick.airpick_service.models.OfferProposalStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,4 +30,10 @@ public interface OfferProposalRepository extends JpaRepository<OfferProposal, UU
     Optional<OfferProposal> findActiveByOfferRequestIdAndCarrierId(
             @Param("requestId") UUID requestId,
             @Param("carrierId") UUID carrierId);
+
+    List<OfferProposal> findTop5ByCarrierIdAndStatusOrderByUpdatedAtDesc(
+            UUID carrierId, OfferProposalStatus status, Pageable pageable);
+
+    List<OfferProposal> findTop5ByOfferRequest_Shipper_IdAndStatusOrderByUpdatedAtDesc(
+            UUID shipperId, OfferProposalStatus status, Pageable pageable);
 }

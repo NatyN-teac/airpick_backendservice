@@ -36,6 +36,11 @@ public enum ErrorCode {
     ITEM_NOT_AVAILABLE("BIZ_006"),
     RECEIVER_DETAILS_REQUIRED("BIZ_007"),
     USER_ALREADY_VERIFIED("BIZ_008"),
+    PICKUP_PHOTO_REQUIRED("BIZ_009"),
+
+    // Upload / storage
+    INVALID_FILE("UPL_001"),
+    STORAGE_NOT_CONFIGURED("UPL_002"),
 
     // Access control
     ACCESS_DENIED("ACL_001"),

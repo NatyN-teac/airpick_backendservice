@@ -6,11 +6,15 @@ import com.airpick.airpick_service.services.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -26,12 +30,13 @@ import java.util.UUID;
  *
  * Subscribe:   /topic/match/{matchId}/chat     — receive incoming messages
  * Subscribe:   /user/queue/notifications       — receive personal notifications
+ * Subscribe:   /user/queue/errors             — receive send-error callbacks
  *
  * Send:        /app/chat/{matchId}/send        — { "content": "Hello" }
  * </pre>
  *
  * Chat rooms only exist after the carrier accepts a match. Attempting to send
- * a message before acceptance returns an error frame.
+ * a message before acceptance delivers an error to /user/queue/errors.
  *
  * -------------------------------------------------------------------------
  * FLUTTER INTEGRATION NOTES
@@ -98,6 +103,15 @@ import java.util.UUID;
  *      body: jsonEncode({ 'content': messageText }),
  *    );
  *
+ *    Subscribe to /user/queue/errors to catch send failures:
+ *    client.subscribe(
+ *      destination: '/user/queue/errors',
+ *      callback: (frame) {
+ *        final err = jsonDecode(frame.body!)['error'];
+ *        // show error snackbar, re-enable send button
+ *      },
+ *    );
+ *
  * 5. DISCONNECT (on logout or app background)
  *    client.deactivate();
  *
@@ -126,11 +140,14 @@ import java.util.UUID;
 public class ChatWebSocketController {
 
     private final ChatService chatService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * Handles an incoming chat message from an authenticated client.
-     * Persists the message, broadcasts it to /topic/match/{matchId}/chat,
-     * and pushes a NEW_MESSAGE notification to the other participant.
+     * Persists the message (inside a transaction in ChatService), then broadcasts
+     * the saved message to all subscribers of the match chat topic.
+     * Broadcasting happens AFTER the service call returns so the transaction is
+     * already committed before any subscriber queries the REST endpoint.
      *
      * @param matchId   the match ID from the destination path
      * @param request   the message payload — must contain non-blank content
@@ -138,12 +155,40 @@ public class ChatWebSocketController {
      */
     @MessageMapping("/chat/{matchId}/send")
     public void sendMessage(
-            @DestinationVariable UUID matchId,
+            @DestinationVariable String matchId,
             @Payload ChatMessageRequestDto request,
             Principal principal) {
 
-        log.debug("WS message received — match: {}, sender: {}", matchId, principal.getName());
-        ChatMessageResponseDto response = chatService.sendMessage(matchId, principal.getName(), request);
-        log.debug("WS message {} broadcast to /topic/match/{}/chat", response.id(), matchId);
+        log.info("===>>> WS sendMessage HIT — match: {}, sender: {}, content: {}",
+                matchId, principal != null ? principal.getName() : "NULL_PRINCIPAL", request);
+
+        UUID matchUuid;
+        try {
+            matchUuid = UUID.fromString(matchId);
+        } catch (IllegalArgumentException e) {
+            log.warn("===>>> WS invalid matchId '{}': {}", matchId, e.getMessage());
+            throw new IllegalArgumentException("Invalid match ID: " + matchId);
+        }
+
+        ChatMessageResponseDto response = chatService.sendMessage(matchUuid, principal.getName(), request);
+
+        // Broadcast after the transaction commits so all subscribers see persisted data.
+        messagingTemplate.convertAndSend("/topic/match/" + matchId + "/chat", response);
+        log.info("===>>> WS message {} broadcast to /topic/match/{}/chat", response.id(), matchId);
+    }
+
+    /**
+     * Catches any exception thrown during message handling and delivers an error frame
+     * to the sender's personal error queue so the client knows the message was not saved.
+     *
+     * @param ex        the exception that was thrown
+     * @param principal the sender
+     * @return an error payload delivered to /user/queue/errors
+     */
+    @MessageExceptionHandler
+    @SendToUser("/queue/errors")
+    public Map<String, String> handleException(Exception ex, Principal principal) {
+        log.warn("WS message error for user {}: {}", principal != null ? principal.getName() : "unknown", ex.getMessage(), ex);
+        return Map.of("error", ex.getMessage() != null ? ex.getMessage() : "Failed to send message");
     }
 }

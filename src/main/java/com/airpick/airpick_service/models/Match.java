@@ -83,6 +83,16 @@ public class Match {
     @OneToOne(mappedBy = "match", cascade = CascadeType.ALL)
     private Chat chat;
 
+    /** GCS object path for the carrier's pickup proof photo (private bucket). */
+    @Column(name = "pickup_photo_object_path", columnDefinition = "TEXT")
+    private String pickupPhotoObjectPath;
+
+    @Column(name = "pickup_photo_content_type", length = 100)
+    private String pickupPhotoContentType;
+
+    @Column(name = "pickup_photo_uploaded_at")
+    private LocalDateTime pickupPhotoUploadedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

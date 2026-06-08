@@ -12,7 +12,6 @@ import com.airpick.airpick_service.repositories.ChatRepository;
 import com.airpick.airpick_service.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,12 +33,12 @@ public class ChatService {
     private final ChatRepository chatRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
-    private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
 
     /**
-     * Persists a message sent by the authenticated user and broadcasts it to the match chat topic.
-     * Also pushes a NEW_MESSAGE notification to the other participant.
+     * Persists a message sent by the authenticated user.
+     * The caller is responsible for broadcasting the returned DTO over WebSocket
+     * after this method returns (i.e. after the transaction commits).
      *
      * @param matchId     the ID of the match whose chat this message belongs to
      * @param senderEmail the authenticated sender's email
@@ -48,7 +47,7 @@ public class ChatService {
      */
     @Transactional
     public ChatMessageResponseDto sendMessage(UUID matchId, String senderEmail, ChatMessageRequestDto request) {
-        log.info("User {} sending message to match {}", senderEmail, matchId);
+        log.info("===>>> ChatService.sendMessage called — match: {}, sender: {}", matchId, senderEmail);
 
         if (request.content() == null || request.content().isBlank()) {
             throw new IllegalArgumentException("Message content cannot be empty");
@@ -72,11 +71,13 @@ public class ChatService {
 
         ChatMessageResponseDto response = ChatMessageResponseDto.from(saved, match);
 
-        // Broadcast to all subscribers of this match's chat topic
-        messagingTemplate.convertAndSend("/topic/match/" + matchId + "/chat", response);
-
-        // Notify the other participant
-        notificationService.notifyNewMessage(match, senderEmail);
+        // Push notification in a best-effort fashion — a failure must not roll back the message save.
+        try {
+            notificationService.notifyNewMessage(match, senderEmail);
+        } catch (Exception e) {
+            log.warn("NEW_MESSAGE notification failed for match {} — message is persisted, notification skipped: {}",
+                    matchId, e.getMessage(), e);
+        }
 
         return response;
     }

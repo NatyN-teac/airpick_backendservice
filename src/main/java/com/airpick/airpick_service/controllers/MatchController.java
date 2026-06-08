@@ -7,6 +7,8 @@ import com.airpick.airpick_service.dtos.input.RejectMatchRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateMatchedItemStatusRequestDto;
 import com.airpick.airpick_service.dtos.output.ApiResponseDto;
 import com.airpick.airpick_service.dtos.output.MatchResponseDto;
+import com.airpick.airpick_service.dtos.output.MatchTrackResponseDto;
+import com.airpick.airpick_service.dtos.output.PickupPhotoUrlResponseDto;
 import com.airpick.airpick_service.services.MatchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,9 +19,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -130,8 +134,9 @@ public class MatchController {
 
     @Operation(
             summary = "Start a match (mark items as collected)",
-            description = "Carrier marks an ACCEPTED match as IN_PROGRESS, indicating items have been physically collected. " +
-                          "All matched items in PENDING status are automatically advanced to COLLECTED. " +
+            description = "Carrier marks an ACCEPTED match as IN_PROGRESS after pickup. " +
+                          "Requires a pickup photo to have been uploaded via POST /{matchId}/pickup-photo " +
+                          "and all matched items to be in COLLECTED status. " +
                           "Transitions the match from ACCEPTED to IN_PROGRESS."
     )
     @ApiResponses({
@@ -149,6 +154,52 @@ public class MatchController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Parameter(description = "ID of the match to start") @PathVariable UUID matchId) {
         return ResponseEntity.ok(ApiResponseDto.ok(matchService.startMatch(matchId, userDetails.getUsername())));
+    }
+
+    @Operation(
+            summary = "Upload match pickup photo",
+            description = "Carrier uploads a pickup proof photo for the match. " +
+                          "The image is streamed to a private Google Cloud Storage bucket at " +
+                          "matches/{matchId}/pickup-photo.{ext}. " +
+                          "All PENDING matched items are marked COLLECTED. " +
+                          "Only allowed while the match is ACCEPTED. " +
+                          "Required before PATCH /{matchId}/start."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Photo uploaded and match updated",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid file type or size"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT"),
+            @ApiResponse(responseCode = "404", description = "Match not found or not owned by carrier")
+    })
+    @PostMapping(value = "/{matchId}/pickup-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponseDto<MatchResponseDto>> uploadPickupPhoto(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Parameter(description = "ID of the match") @PathVariable UUID matchId,
+            @Parameter(description = "Pickup proof image (JPEG, PNG, or WebP, max 10 MB)")
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                matchService.uploadPickupPhoto(matchId, userDetails.getUsername(), file)));
+    }
+
+    @Operation(
+            summary = "Get signed URL for pickup photo",
+            description = "Returns a short-lived signed URL to view the private pickup photo in GCS. " +
+                          "Accessible to the carrier and shipper of the match."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Signed URL returned",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "No pickup photo uploaded"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT"),
+            @ApiResponse(responseCode = "404", description = "Match not found or caller is not a participant")
+    })
+    @GetMapping("/{matchId}/pickup-photo/url")
+    public ResponseEntity<ApiResponseDto<PickupPhotoUrlResponseDto>> getPickupPhotoUrl(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Parameter(description = "ID of the match") @PathVariable UUID matchId) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                matchService.getPickupPhotoSignedUrl(matchId, userDetails.getUsername())));
     }
 
     @Operation(
@@ -295,6 +346,50 @@ public class MatchController {
     public ResponseEntity<ApiResponseDto<List<MatchResponseDto>>> getMyMatchesAsCarrier(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return ResponseEntity.ok(ApiResponseDto.ok(matchService.getMyMatchesAsCarrier(userDetails.getUsername())));
+    }
+
+    @Operation(
+            summary = "Track my deliveries as shipper",
+            description = "Returns matches where you are the shipper, grouped into three delivery stages:\n\n" +
+                          "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
+                          "- **inProgress** — IN_PROGRESS (carrier en route)\n" +
+                          "- **completed** — COMPLETED (delivered)\n\n" +
+                          "Excludes PENDING, CANCELLED, and REJECTED matches. " +
+                          "Ordered by most recently updated within each group."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Track summary retrieved",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @GetMapping("/me/track/shipper")
+    public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> getTrackAsShipper(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                matchService.getTrackAsShipper(userDetails.getUsername())));
+    }
+
+    @Operation(
+            summary = "Track my deliveries as carrier",
+            description = "Returns matches where you are the carrier, grouped into three delivery stages:\n\n" +
+                          "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
+                          "- **inProgress** — IN_PROGRESS (en route to deliver)\n" +
+                          "- **completed** — COMPLETED (delivered)\n\n" +
+                          "Excludes PENDING, CANCELLED, and REJECTED matches. " +
+                          "Ordered by most recently updated within each group."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Track summary retrieved",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @GetMapping("/me/track/carrier")
+    public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> getTrackAsCarrier(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                matchService.getTrackAsCarrier(userDetails.getUsername())));
     }
 
     @Operation(

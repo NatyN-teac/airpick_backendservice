@@ -20,16 +20,40 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
     @Query("SELECT o FROM Offer o WHERE o.carrier.id = :carrierId ORDER BY o.createdAt DESC")
     List<Offer> findAllByCarrierId(@Param("carrierId") UUID carrierId);
 
-    @Query("SELECT o FROM Offer o WHERE o.status = 'OPEN' ORDER BY o.createdAt DESC")
+    @Query("""
+            SELECT o FROM Offer o
+            JOIN FETCH o.carrier c
+            LEFT JOIN FETCH c.userProfile
+            WHERE o.status = 'OPEN'
+            ORDER BY o.createdAt DESC
+            """)
     List<Offer> findAllOpen();
 
-    @Query("SELECT o FROM Offer o WHERE o.status = 'OPEN' AND o.carrier.id != :carrierId ORDER BY o.createdAt DESC")
+    @Query("""
+            SELECT o FROM Offer o
+            JOIN FETCH o.carrier c
+            LEFT JOIN FETCH c.userProfile
+            WHERE o.status = 'OPEN' AND o.carrier.id != :carrierId
+            ORDER BY o.createdAt DESC
+            """)
     List<Offer> findAllOpenExcludingCarrier(@Param("carrierId") UUID carrierId);
 
-    @Query("SELECT o FROM Offer o WHERE o.status = :status ORDER BY o.createdAt DESC")
+    @Query("""
+            SELECT o FROM Offer o
+            JOIN FETCH o.carrier c
+            LEFT JOIN FETCH c.userProfile
+            WHERE o.status = :status
+            ORDER BY o.createdAt DESC
+            """)
     List<Offer> findAllByStatus(@Param("status") OfferStatus status);
 
-    @Query("SELECT o FROM Offer o WHERE o.status = :status AND o.carrier.id != :carrierId ORDER BY o.createdAt DESC")
+    @Query("""
+            SELECT o FROM Offer o
+            JOIN FETCH o.carrier c
+            LEFT JOIN FETCH c.userProfile
+            WHERE o.status = :status AND o.carrier.id != :carrierId
+            ORDER BY o.createdAt DESC
+            """)
     List<Offer> findAllByStatusExcludingCarrier(@Param("status") OfferStatus status, @Param("carrierId") UUID carrierId);
 
     @Query("SELECT o FROM Offer o WHERE o.flight.id = :flightId AND o.offerSource = 'DIRECT' AND o.status != 'CANCELLED'")

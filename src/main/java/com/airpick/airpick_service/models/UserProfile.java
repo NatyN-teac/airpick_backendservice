@@ -3,6 +3,7 @@ package com.airpick.airpick_service.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -53,6 +54,10 @@ public class UserProfile {
     /** Optional date of birth. */
     @Column(name = "dob")
     private LocalDate dob;
+
+    /** Optional average carrier rating (1.00–5.00). Null until rated. */
+    @Column(precision = 3, scale = 2)
+    private BigDecimal rating;
 
     @OneToOne(mappedBy = "userProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserVerification userVerification;

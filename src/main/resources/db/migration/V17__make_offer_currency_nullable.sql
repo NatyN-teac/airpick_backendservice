@@ -1,0 +1,1 @@
+ALTER TABLE offers ALTER COLUMN currency DROP NOT NULL;

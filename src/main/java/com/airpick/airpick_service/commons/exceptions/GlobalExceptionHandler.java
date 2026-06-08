@@ -160,6 +160,10 @@ public class GlobalExceptionHandler {
         if (message.contains("Invalid Veriff webhook")) return ErrorCode.INVALID_WEBHOOK_SIGNATURE;
         if (message.contains("already verified"))   return ErrorCode.USER_ALREADY_VERIFIED;
         if (message.contains("Veriff integration is not configured")) return ErrorCode.INTERNAL_ERROR;
+        if (message.contains("Cloud storage is not configured")) return ErrorCode.STORAGE_NOT_CONFIGURED;
+        if (message.contains("Unsupported image type") ||
+            message.contains("Photo file"))              return ErrorCode.INVALID_FILE;
+        if (message.contains("Pickup photo is required")) return ErrorCode.PICKUP_PHOTO_REQUIRED;
 
         return ErrorCode.INTERNAL_ERROR;
     }
@@ -191,7 +195,10 @@ public class GlobalExceptionHandler {
                  RECEIVER_DETAILS_REQUIRED,
                  MODE_NOT_FOUND,
                  ROLE_NOT_FOUND,
-                 USER_ALREADY_VERIFIED          -> HttpStatus.BAD_REQUEST;
+                 USER_ALREADY_VERIFIED,
+                 PICKUP_PHOTO_REQUIRED,
+                 INVALID_FILE,
+                 STORAGE_NOT_CONFIGURED          -> HttpStatus.BAD_REQUEST;
             default                             -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }

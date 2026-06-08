@@ -1,6 +1,8 @@
 package com.airpick.airpick_service.repositories;
 
 import com.airpick.airpick_service.models.Match;
+import com.airpick.airpick_service.models.MatchStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +22,16 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
 
     @Query("SELECT m FROM Match m WHERE m.offer.id = :offerId ORDER BY m.createdAt DESC")
     List<Match> findAllByOfferId(@Param("offerId") UUID offerId);
+
+    List<Match> findTop5ByCarrierIdAndStatusInOrderByUpdatedAtDesc(
+            UUID carrierId, List<MatchStatus> statuses, Pageable pageable);
+
+    List<Match> findTop5ByShipperIdAndStatusInOrderByUpdatedAtDesc(
+            UUID shipperId, List<MatchStatus> statuses, Pageable pageable);
+
+    List<Match> findAllByShipperIdAndStatusInOrderByUpdatedAtDesc(
+            UUID shipperId, List<MatchStatus> statuses);
+
+    List<Match> findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
+            UUID carrierId, List<MatchStatus> statuses);
 }

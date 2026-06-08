@@ -2,6 +2,8 @@ package com.airpick.airpick_service.dtos.output;
 
 import com.airpick.airpick_service.models.Offer;
 import com.airpick.airpick_service.models.OfferItem;
+import com.airpick.airpick_service.models.User;
+import com.airpick.airpick_service.models.UserProfile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ import java.util.UUID;
 public record OfferResponseDto(
         UUID id,
         UUID carrierId,
+        CarrierDto carrier,
         String offerSource,
         String status,
         boolean hasManualItem,
@@ -27,6 +30,28 @@ public record OfferResponseDto(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
+    public record CarrierDto(
+            String firstName,
+            String lastName,
+            String profilePictureUrl,
+            boolean isVerified,
+            BigDecimal rating
+    ) {
+        public static CarrierDto from(User user) {
+            UserProfile profile = user.getUserProfile();
+            if (profile == null) {
+                return new CarrierDto(null, null, null, false, null);
+            }
+            return new CarrierDto(
+                    profile.getFirstName(),
+                    profile.getLastName(),
+                    profile.getProfilePictureUrl(),
+                    profile.isVerified(),
+                    profile.getRating()
+            );
+        }
+    }
+
     public record OfferItemDto(
             UUID id,
             ItemDto item,
@@ -67,6 +92,7 @@ public record OfferResponseDto(
         return new OfferResponseDto(
                 offer.getId(),
                 offer.getCarrier().getId(),
+                CarrierDto.from(offer.getCarrier()),
                 offer.getOfferSource().name(),
                 offer.getStatus().name(),
                 offer.isHasManualItem(),

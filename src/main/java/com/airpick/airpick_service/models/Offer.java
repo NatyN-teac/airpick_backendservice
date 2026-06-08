@@ -55,7 +55,7 @@ public class Offer {
     private OfferRequest offerRequest;
 
     /** ISO 4217 currency code for all item prices on this offer (e.g. USD, EUR, NGN). */
-    @Column(name = "currency", nullable = false, length = 10)
+    @Column(name = "currency", length = 10)
     private String currency;
 
     /**

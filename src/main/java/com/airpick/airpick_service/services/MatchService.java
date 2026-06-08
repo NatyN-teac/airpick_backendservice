@@ -5,13 +5,17 @@ import com.airpick.airpick_service.dtos.input.CreateMatchRequestDto;
 import com.airpick.airpick_service.dtos.input.RejectMatchRequestDto;
 import com.airpick.airpick_service.dtos.input.UpdateMatchedItemStatusRequestDto;
 import com.airpick.airpick_service.dtos.output.MatchResponseDto;
+import com.airpick.airpick_service.dtos.output.MatchTrackResponseDto;
+import com.airpick.airpick_service.dtos.output.PickupPhotoUrlResponseDto;
 import com.airpick.airpick_service.models.*;
 import com.airpick.airpick_service.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +48,15 @@ public class MatchService {
     private final OfferItemRepository offerItemRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final GcsStorageService gcsStorageService;
+
+    private static final long MAX_PICKUP_PHOTO_BYTES = 10 * 1024 * 1024;
+
+    private static final List<MatchStatus> TRACK_STATUSES = List.of(
+            MatchStatus.ACCEPTED,
+            MatchStatus.IN_PROGRESS,
+            MatchStatus.COMPLETED
+    );
 
     // -------------------------------------------------------------------------
     // Shipper — create match
@@ -304,18 +317,21 @@ public class MatchService {
                     "Only ACCEPTED matches can be started. Current status: " + match.getStatus());
         }
 
+        if (match.getPickupPhotoObjectPath() == null) {
+            throw new IllegalArgumentException(
+                    "Pickup photo is required before starting the match. Upload via POST /matches/{matchId}/pickup-photo");
+        }
+
+        boolean hasPendingItems = match.getMatchedItems().stream()
+                .anyMatch(mi -> mi.getStatus() == MatchedItemStatus.PENDING);
+        if (hasPendingItems) {
+            throw new IllegalArgumentException(
+                    "All matched items must be collected before starting the match");
+        }
+
         match.setStatus(MatchStatus.IN_PROGRESS);
         matchRepository.save(match);
         recordMatchTransition(match, MatchStatus.ACCEPTED, MatchStatus.IN_PROGRESS, carrier, "Items collected by carrier");
-
-        for (MatchedItem mi : match.getMatchedItems()) {
-            if (mi.getStatus() == MatchedItemStatus.PENDING) {
-                mi.setStatus(MatchedItemStatus.COLLECTED);
-                matchedItemRepository.save(mi);
-                recordMatchedItemTransition(mi, MatchedItemStatus.PENDING, MatchedItemStatus.COLLECTED,
-                        carrier, "Collected by carrier");
-            }
-        }
 
         log.info("Match {} started (IN_PROGRESS) by carrier {}", matchId, carrierEmail);
         return MatchResponseDto.from(match);
@@ -486,6 +502,99 @@ public class MatchService {
     }
 
     // -------------------------------------------------------------------------
+    // Carrier — pickup photo (private GCS)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Carrier uploads a pickup proof photo for the match. The file is streamed to a
+     * private GCS bucket at {@code matches/{matchId}/pickup-photo.{ext}}.
+     * All PENDING matched items are marked COLLECTED atomically.
+     * Only allowed while the match is ACCEPTED (before IN_PROGRESS).
+     */
+    @Transactional
+    public MatchResponseDto uploadPickupPhoto(UUID matchId, String carrierEmail, MultipartFile file) {
+        log.info("Carrier {} uploading pickup photo for match {}", carrierEmail, matchId);
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Photo file is required");
+        }
+
+        String contentType = file.getContentType();
+        if (!GcsStorageService.isAllowedImageType(contentType)) {
+            throw new IllegalArgumentException(
+                    "Unsupported image type. Allowed: JPEG, PNG, WebP");
+        }
+
+        if (file.getSize() > MAX_PICKUP_PHOTO_BYTES) {
+            throw new IllegalArgumentException("Photo file exceeds maximum size of 10 MB");
+        }
+
+        User carrier = resolveUser(carrierEmail);
+        Match match = resolveCarrierMatch(matchId, carrier);
+
+        if (match.getStatus() != MatchStatus.ACCEPTED) {
+            throw new IllegalStateException(
+                    "Pickup photo can only be uploaded for ACCEPTED matches. Current status: " + match.getStatus());
+        }
+
+        if (match.getPickupPhotoObjectPath() != null) {
+            gcsStorageService.deleteObject(match.getPickupPhotoObjectPath());
+        }
+
+        String objectPath;
+        try (var inputStream = file.getInputStream()) {
+            objectPath = gcsStorageService.uploadMatchPickupPhoto(
+                    matchId, inputStream, contentType, file.getSize());
+        } catch (IOException e) {
+            log.error("Failed to stream pickup photo for match {}", matchId, e);
+            throw new IllegalStateException("Failed to upload pickup photo");
+        }
+
+        match.setPickupPhotoObjectPath(objectPath);
+        match.setPickupPhotoContentType(contentType);
+        match.setPickupPhotoUploadedAt(java.time.LocalDateTime.now());
+        matchRepository.save(match);
+
+        for (MatchedItem mi : match.getMatchedItems()) {
+            if (mi.getStatus() == MatchedItemStatus.PENDING) {
+                mi.setStatus(MatchedItemStatus.COLLECTED);
+                matchedItemRepository.save(mi);
+                recordMatchedItemTransition(mi, MatchedItemStatus.PENDING, MatchedItemStatus.COLLECTED,
+                        carrier, "Collected — pickup photo uploaded");
+            }
+        }
+
+        log.info("Pickup photo saved for match {} at {}", matchId, objectPath);
+        return MatchResponseDto.from(match);
+    }
+
+    /**
+     * Returns a short-lived signed URL so carrier or shipper can view the private pickup photo.
+     */
+    @Transactional(readOnly = true)
+    public PickupPhotoUrlResponseDto getPickupPhotoSignedUrl(UUID matchId, String userEmail) {
+        User user = resolveUser(userEmail);
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new IllegalArgumentException("Match not found: " + matchId));
+
+        validateParticipant(match, user);
+
+        if (match.getPickupPhotoObjectPath() == null) {
+            throw new IllegalArgumentException("No pickup photo uploaded for this match");
+        }
+
+        GcsStorageService.SignedUrlResult signed = gcsStorageService.generateSignedReadUrl(
+                match.getPickupPhotoObjectPath());
+
+        return new PickupPhotoUrlResponseDto(
+                match.getId(),
+                signed.signedUrl(),
+                signed.expiresAt(),
+                match.getPickupPhotoContentType(),
+                match.getPickupPhotoUploadedAt());
+    }
+
+    // -------------------------------------------------------------------------
     // Read methods
     // -------------------------------------------------------------------------
 
@@ -535,6 +644,30 @@ public class MatchService {
     }
 
     /**
+     * Returns delivery tracking for matches where the user is the shipper,
+     * grouped into collected (ACCEPTED), inProgress (IN_PROGRESS), and completed (COMPLETED).
+     */
+    @Transactional(readOnly = true)
+    public MatchTrackResponseDto getTrackAsShipper(String email) {
+        User shipper = resolveUser(email);
+        log.info("Fetching shipper track for user {}", shipper.getId());
+        return buildTrack(matchRepository.findAllByShipperIdAndStatusInOrderByUpdatedAtDesc(
+                shipper.getId(), TRACK_STATUSES));
+    }
+
+    /**
+     * Returns delivery tracking for matches where the user is the carrier,
+     * grouped into collected (ACCEPTED), inProgress (IN_PROGRESS), and completed (COMPLETED).
+     */
+    @Transactional(readOnly = true)
+    public MatchTrackResponseDto getTrackAsCarrier(String email) {
+        User carrier = resolveUser(email);
+        log.info("Fetching carrier track for user {}", carrier.getId());
+        return buildTrack(matchRepository.findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
+                carrier.getId(), TRACK_STATUSES));
+    }
+
+    /**
      * Returns all matches against a specific offer. Caller must be the carrier who owns the offer.
      *
      * @param offerId      the ID of the offer
@@ -572,6 +705,24 @@ public class MatchService {
                 });
     }
 
+    private MatchTrackResponseDto buildTrack(List<Match> matches) {
+        List<MatchResponseDto> collected = new ArrayList<>();
+        List<MatchResponseDto> inProgress = new ArrayList<>();
+        List<MatchResponseDto> completed = new ArrayList<>();
+
+        for (Match match : matches) {
+            MatchResponseDto dto = MatchResponseDto.from(match);
+            switch (match.getStatus()) {
+                case ACCEPTED -> collected.add(dto);
+                case IN_PROGRESS -> inProgress.add(dto);
+                case COMPLETED -> completed.add(dto);
+                default -> { /* excluded by query */ }
+            }
+        }
+
+        return new MatchTrackResponseDto(collected, inProgress, completed);
+    }
+
     /**
      * Loads the match and validates the caller is its carrier.
      * Throws 404-style error on ownership mismatch to avoid leaking existence.
@@ -586,6 +737,16 @@ public class MatchService {
         }
 
         return match;
+    }
+
+    private void validateParticipant(Match match, User user) {
+        boolean isParticipant = match.getCarrier().getId().equals(user.getId())
+                || match.getShipper().getId().equals(user.getId());
+        if (!isParticipant) {
+            log.warn("User {} attempted to access match {} without being a participant",
+                    user.getId(), match.getId());
+            throw new IllegalArgumentException("Match not found: " + match.getId());
+        }
     }
 
     /**
