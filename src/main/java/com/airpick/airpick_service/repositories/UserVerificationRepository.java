@@ -20,4 +20,9 @@ public interface UserVerificationRepository extends JpaRepository<UserVerificati
             WHERE uv.veriffSessionId = :sessionId
             """)
     Optional<UserVerification> findByVeriffSessionIdWithProfile(@Param("sessionId") String sessionId);
+
+    // Paging and counts for admin listing
+    org.springframework.data.domain.Page<UserVerification> findByStatus(String status, org.springframework.data.domain.Pageable pageable);
+
+    long countByStatus(String status);
 }
