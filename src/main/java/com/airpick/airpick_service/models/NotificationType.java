@@ -16,4 +16,6 @@ public enum NotificationType {
     OFFER_CANCELLED,
     OFFER_REQUEST_CANCELLED,
     NEW_MESSAGE
+    ,
+    ADMIN_BROADCAST
 }

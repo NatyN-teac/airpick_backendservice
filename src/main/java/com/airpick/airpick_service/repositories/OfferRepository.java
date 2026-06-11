@@ -47,6 +47,11 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
             """)
     List<Offer> findAllByStatus(@Param("status") OfferStatus status);
 
+    // Paging by status for admin
+    org.springframework.data.domain.Page<Offer> findByStatus(OfferStatus status, org.springframework.data.domain.Pageable pageable);
+
+        long countByStatus(OfferStatus status);
+
     @Query("""
             SELECT o FROM Offer o
             JOIN FETCH o.carrier c

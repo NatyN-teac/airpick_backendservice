@@ -186,6 +186,42 @@ public class IdentityVerificationService {
         });
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<java.util.Map<String, Object>> listVerifications(int page, int size, String status) {
+        org.springframework.data.domain.Pageable p = org.springframework.data.domain.PageRequest.of(page, size);
+        var pageRes = (status == null || status.isBlank()) ? userVerificationRepository.findAll(p) : userVerificationRepository.findByStatus(status, p);
+        return pageRes.stream().map(uv -> java.util.Map.of(
+                "sessionId", uv.getVeriffSessionId(),
+                "userId", uv.getUserProfile().getUser().getId(),
+                "status", uv.getStatus(),
+                "createdAt", uv.getVerificationRequestedAt(),
+                "verifiedAt", uv.getVerifiedAt()
+        )).toList();
+    }
+
+    @Transactional
+    public void overrideVerification(String sessionId, String overrideStatus) {
+        UserVerification uv = userVerificationRepository.findByVeriffSessionIdWithProfile(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Verification not found: " + sessionId));
+
+        UserProfile profile = uv.getUserProfile();
+        uv.setStatus(overrideStatus);
+        uv.setVerificationMessage("Overridden by admin");
+
+        if ("verified".equalsIgnoreCase(overrideStatus) || "approved".equalsIgnoreCase(overrideStatus)) {
+            profile.setVerified(true);
+            uv.setDenied(false);
+            uv.setVerifiedAt(java.time.LocalDateTime.now());
+        } else {
+            profile.setVerified(false);
+            uv.setDenied(true);
+            uv.setVerifiedAt(null);
+        }
+
+        userProfileRepository.save(profile);
+        userVerificationRepository.save(uv);
+    }
+
     private UserVerification resolveVerification(String sessionId, String endUserId) {
         if (sessionId != null) {
             var bySession = userVerificationRepository.findByVeriffSessionIdWithProfile(sessionId);

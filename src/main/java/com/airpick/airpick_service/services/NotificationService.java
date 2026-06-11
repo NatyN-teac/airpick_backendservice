@@ -33,6 +33,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final PushNotificationService pushNotificationService;
+    private final com.airpick.airpick_service.repositories.UserRepository userRepository;
 
     // -------------------------------------------------------------------------
     // Account
@@ -317,5 +318,30 @@ public class NotificationService {
             log.error("FCM push failed for notification {} (user {}) — notification is persisted, push skipped: {}",
                     saved.getId(), recipient.getId(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Send a system notification to a list of user IDs.
+     */
+    @Transactional
+    public void sendSystemNotificationToUsers(java.util.List<java.util.UUID> userIds,
+                                              String title,
+                                              String body,
+                                              java.util.Map<String, String> data) {
+        for (java.util.UUID id : userIds) {
+            userRepository.findById(id).ifPresent(u -> createAndSend(u, NotificationType.ADMIN_BROADCAST, title, body, null, null));
+        }
+    }
+
+    @Transactional
+    public void sendSystemNotificationToRole(String roleName, String title, String body, java.util.Map<String, String> data) {
+        var users = userRepository.findByRole_Name(roleName);
+        for (User u : users) createAndSend(u, NotificationType.ADMIN_BROADCAST, title, body, null, null);
+    }
+
+    @Transactional
+    public void sendSystemNotificationToAll(String title, String body, java.util.Map<String, String> data) {
+        var all = userRepository.findAll();
+        for (User u : all) createAndSend(u, NotificationType.ADMIN_BROADCAST, title, body, null, null);
     }
 }
