@@ -666,6 +666,23 @@ public class MatchService {
     }
 
     /**
+     * Search shipper matches by optional location filters (any combination).
+     */
+    @Transactional(readOnly = true)
+    public MatchTrackResponseDto searchTrackAsShipper(String email,
+                                                     String sourceCountry,
+                                                     String sourceCity,
+                                                     String destinationCountry,
+                                                     String destinationCity) {
+        User shipper = resolveUser(email);
+        List<Match> matches = matchRepository.findAllByShipperIdAndStatusInOrderByUpdatedAtDesc(
+                shipper.getId(), TRACK_STATUSES);
+
+        List<Match> filtered = filterMatchesByLocation(matches, sourceCountry, sourceCity, destinationCountry, destinationCity);
+        return buildTrack(filtered);
+    }
+
+    /**
      * Returns delivery tracking for matches where the user is the carrier,
      * grouped into collected (ACCEPTED), inProgress (IN_PROGRESS), and completed (COMPLETED).
      */
@@ -674,8 +691,27 @@ public class MatchService {
         User carrier = resolveUser(email);
         log.info("Fetching carrier track for user {}", carrier.getId());
         return buildTrack(matchRepository.findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
-                carrier.getId(), TRACK_STATUSES));
-    }
+            carrier.getId(), TRACK_STATUSES));
+        }
+
+        /**
+         * Search carrier matches by optional location filters (any combination).
+         * Returns the same grouped track response as `getTrackAsCarrier` but only
+         * for matches whose flight legs match all provided filters on the same leg.
+         */
+        @Transactional(readOnly = true)
+        public MatchTrackResponseDto searchTrackAsCarrier(String email,
+                                String sourceCountry,
+                                String sourceCity,
+                                String destinationCountry,
+                                String destinationCity) {
+        User carrier = resolveUser(email);
+        List<Match> matches = matchRepository.findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
+            carrier.getId(), TRACK_STATUSES);
+
+        List<Match> filtered = filterMatchesByLocation(matches, sourceCountry, sourceCity, destinationCountry, destinationCity);
+        return buildTrack(filtered);
+        }
 
     /**
      * Returns all matches against a specific offer. Caller must be the carrier who owns the offer.
@@ -731,6 +767,58 @@ public class MatchService {
         }
 
         return new MatchTrackResponseDto(collected, inProgress, completed);
+    }
+
+    /**
+     * Filters the provided matches by checking each flight leg's src/dest airport
+     * against the provided optional filters. A match is included if any single
+     * leg satisfies all of the non-null filters.
+     */
+    private List<Match> filterMatchesByLocation(List<Match> matches,
+                                               String sourceCountry,
+                                               String sourceCity,
+                                               String destinationCountry,
+                                               String destinationCity) {
+        boolean hasFilter = (sourceCountry != null && !sourceCountry.isBlank())
+                || (sourceCity != null && !sourceCity.isBlank())
+                || (destinationCountry != null && !destinationCountry.isBlank())
+                || (destinationCity != null && !destinationCity.isBlank());
+
+        if (!hasFilter) return matches;
+
+        String sc = sourceCountry == null ? null : sourceCountry.trim().toLowerCase();
+        String sct = sourceCity == null ? null : sourceCity.trim().toLowerCase();
+        String dc = destinationCountry == null ? null : destinationCountry.trim().toLowerCase();
+        String dct = destinationCity == null ? null : destinationCity.trim().toLowerCase();
+
+        return matches.stream().filter(m -> {
+            Offer offer = m.getOffer();
+            if (offer == null || offer.getFlight() == null) return false;
+            for (FlightLeg leg : offer.getFlight().getLegs()) {
+                if (leg.getSrcAirport() == null || leg.getDestAirport() == null) continue;
+
+                boolean legMatches = true;
+                if (sc != null) {
+                    String legSrcCountry = leg.getSrcAirport().getCountry();
+                    legMatches = legMatches && legSrcCountry != null && legSrcCountry.toLowerCase().contains(sc);
+                }
+                if (sct != null) {
+                    String legSrcCity = leg.getSrcAirport().getCity();
+                    legMatches = legMatches && legSrcCity != null && legSrcCity.toLowerCase().contains(sct);
+                }
+                if (dc != null) {
+                    String legDestCountry = leg.getDestAirport().getCountry();
+                    legMatches = legMatches && legDestCountry != null && legDestCountry.toLowerCase().contains(dc);
+                }
+                if (dct != null) {
+                    String legDestCity = leg.getDestAirport().getCity();
+                    legMatches = legMatches && legDestCity != null && legDestCity.toLowerCase().contains(dct);
+                }
+
+                if (legMatches) return true;
+            }
+            return false;
+        }).toList();
     }
 
     /**

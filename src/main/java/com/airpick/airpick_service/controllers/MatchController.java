@@ -371,6 +371,29 @@ public class MatchController {
     }
 
     @Operation(
+            summary = "Search and track as shipper",
+            description = "Searches the shipper's tracked matches by optional source/destination country/city. " +
+                    "Any combination of the parameters may be provided; a match is returned if any single flight leg " +
+                    "satisfies all provided filters. Returns the same grouped track response."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Track summary retrieved",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @GetMapping("/me/track/shipper/search")
+    public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> searchTrackAsShipper(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
+            @Parameter(description = "Source city (optional)") @RequestParam(required = false) String sourceCity,
+            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
+            @Parameter(description = "Destination city (optional)") @RequestParam(required = false) String destinationCity) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                matchService.searchTrackAsShipper(userDetails.getUsername(), sourceCountry, sourceCity, destinationCountry, destinationCity)));
+    }
+
+    @Operation(
             summary = "Track my deliveries as carrier",
             description = "Returns matches where you are the carrier, grouped into three delivery stages:\n\n" +
                           "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
@@ -390,6 +413,29 @@ public class MatchController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return ResponseEntity.ok(ApiResponseDto.ok(
                 matchService.getTrackAsCarrier(userDetails.getUsername())));
+    }
+
+    @Operation(
+            summary = "Search and track as carrier",
+            description = "Searches the carrier's tracked matches by optional source/destination country/city. " +
+                    "Any combination of the parameters may be provided; a match is returned if any single flight leg " +
+                    "satisfies all provided filters. Returns the same grouped track response."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Track summary retrieved",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @GetMapping("/me/track/carrier/search")
+    public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> searchTrackAsCarrier(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
+            @Parameter(description = "Source city (optional)") @RequestParam(required = false) String sourceCity,
+            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
+            @Parameter(description = "Destination city (optional)") @RequestParam(required = false) String destinationCity) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                matchService.searchTrackAsCarrier(userDetails.getUsername(), sourceCountry, sourceCity, destinationCountry, destinationCity)));
     }
 
     @Operation(
