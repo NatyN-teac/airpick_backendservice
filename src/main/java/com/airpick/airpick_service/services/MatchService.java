@@ -671,14 +671,10 @@ public class MatchService {
     @Transactional(readOnly = true)
     public MatchTrackResponseDto searchTrackAsShipper(String email,
                                                      String sourceCountry,
-                                                     String sourceCity,
-                                                     String destinationCountry,
-                                                     String destinationCity) {
+                                                     String destinationCountry) {
         User shipper = resolveUser(email);
         boolean hasFilter = (sourceCountry != null && !sourceCountry.isBlank())
-            || (sourceCity != null && !sourceCity.isBlank())
-            || (destinationCountry != null && !destinationCountry.isBlank())
-            || (destinationCity != null && !destinationCity.isBlank());
+            || (destinationCountry != null && !destinationCountry.isBlank());
 
         if (!hasFilter) {
             List<Match> matches = matchRepository.findAllByShipperIdAndStatusInOrderByUpdatedAtDesc(
@@ -687,12 +683,10 @@ public class MatchService {
         }
 
         String sc = sourceCountry == null ? null : sourceCountry.trim().toLowerCase();
-        String sct = sourceCity == null ? null : sourceCity.trim().toLowerCase();
         String dc = destinationCountry == null ? null : destinationCountry.trim().toLowerCase();
-        String dct = destinationCity == null ? null : destinationCity.trim().toLowerCase();
 
         List<Match> matches = matchRepository.findAllByShipperIdAndStatusInAndOfferRequestFieldsOrderByUpdatedAtDesc(
-            shipper.getId(), TRACK_STATUSES, sc, sct, dc, dct);
+            shipper.getId(), TRACK_STATUSES, sc, dc);
 
         return buildTrack(matches);
     }
@@ -717,14 +711,12 @@ public class MatchService {
         @Transactional(readOnly = true)
         public MatchTrackResponseDto searchTrackAsCarrier(String email,
                                 String sourceCountry,
-                                String sourceCity,
-                                String destinationCountry,
-                                String destinationCity) {
+                                String destinationCountry) {
         User carrier = resolveUser(email);
         List<Match> matches = matchRepository.findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
             carrier.getId(), TRACK_STATUSES);
 
-        List<Match> filtered = filterMatchesByLocation(matches, sourceCountry, sourceCity, destinationCountry, destinationCity);
+        List<Match> filtered = filterMatchesByLocation(matches, sourceCountry, destinationCountry);
         return buildTrack(filtered);
         }
 
@@ -791,20 +783,14 @@ public class MatchService {
      */
     private List<Match> filterMatchesByLocation(List<Match> matches,
                                                String sourceCountry,
-                                               String sourceCity,
-                                               String destinationCountry,
-                                               String destinationCity) {
+                                               String destinationCountry) {
         boolean hasFilter = (sourceCountry != null && !sourceCountry.isBlank())
-                || (sourceCity != null && !sourceCity.isBlank())
-                || (destinationCountry != null && !destinationCountry.isBlank())
-                || (destinationCity != null && !destinationCity.isBlank());
+                || (destinationCountry != null && !destinationCountry.isBlank());
 
         if (!hasFilter) return matches;
 
         String sc = sourceCountry == null ? null : sourceCountry.trim().toLowerCase();
-        String sct = sourceCity == null ? null : sourceCity.trim().toLowerCase();
         String dc = destinationCountry == null ? null : destinationCountry.trim().toLowerCase();
-        String dct = destinationCity == null ? null : destinationCity.trim().toLowerCase();
 
         return matches.stream().filter(m -> {
             Offer offer = m.getOffer();
@@ -817,18 +803,12 @@ public class MatchService {
                     String legSrcCountry = leg.getSrcAirport().getCountry();
                     legMatches = legMatches && legSrcCountry != null && legSrcCountry.toLowerCase().contains(sc);
                 }
-                if (sct != null) {
-                    String legSrcCity = leg.getSrcAirport().getCity();
-                    legMatches = legMatches && legSrcCity != null && legSrcCity.toLowerCase().contains(sct);
-                }
+              
                 if (dc != null) {
                     String legDestCountry = leg.getDestAirport().getCountry();
                     legMatches = legMatches && legDestCountry != null && legDestCountry.toLowerCase().contains(dc);
                 }
-                if (dct != null) {
-                    String legDestCity = leg.getDestAirport().getCity();
-                    legMatches = legMatches && legDestCity != null && legDestCity.toLowerCase().contains(dct);
-                }
+               
 
                 if (legMatches) return true;
             }

@@ -39,18 +39,14 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
             WHERE m.shipper.id = :shipperId
               AND m.status IN :statuses
               AND (:sourceCountry IS NULL OR LOWER(r.sourceCountry) LIKE CONCAT('%', :sourceCountry, '%'))
-              AND (:sourceCity IS NULL OR LOWER(r.sourceCity) LIKE CONCAT('%', :sourceCity, '%'))
               AND (:destinationCountry IS NULL OR LOWER(r.destinationCountry) LIKE CONCAT('%', :destinationCountry, '%'))
-              AND (:destinationCity IS NULL OR LOWER(r.destinationCity) LIKE CONCAT('%', :destinationCity, '%'))
             ORDER BY m.updatedAt DESC
             """)
     List<Match> findAllByShipperIdAndStatusInAndOfferRequestFieldsOrderByUpdatedAtDesc(
             @Param("shipperId") UUID shipperId,
             @Param("statuses") List<MatchStatus> statuses,
             @Param("sourceCountry") String sourceCountry,
-            @Param("sourceCity") String sourceCity,
             @Param("destinationCountry") String destinationCountry,
-            @Param("destinationCity") String destinationCity
     );
 
     List<Match> findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
