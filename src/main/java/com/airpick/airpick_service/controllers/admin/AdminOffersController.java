@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class AdminOffersController {
 
     private final OfferRepository offerRepository;
+    private final com.airpick.airpick_service.services.ItemService itemService;
 
     @GetMapping
     public ResponseEntity<ApiResponseDto<List<OfferResponseDto>>> listOffers(
@@ -58,6 +59,39 @@ public class AdminOffersController {
         if (target == null) throw new IllegalArgumentException("targetStatus required");
         Offer o = offerRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Offer not found: " + id));
         o.setStatus(OfferStatus.valueOf(target));
+        offerRepository.save(o);
+        return ResponseEntity.ok(ApiResponseDto.ok(OfferResponseDto.from(o)));
+    }
+
+    @PatchMapping("/{id}/approve-items")
+    public ResponseEntity<ApiResponseDto<OfferResponseDto>> approveManualItems(@PathVariable UUID id) {
+        Offer o = offerRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Offer not found: " + id));
+        // Approve any carrier-submitted items referenced by this offer
+        o.getOfferItems().stream()
+                .map(it -> it.getItem())
+                .filter(item -> item.getCreatedBy() != null && !item.isApproved())
+                .forEach(item -> itemService.approveItem(item.getId()));
+
+        boolean hasManual = o.getOfferItems().stream()
+                .anyMatch(it -> it.getItem().getCreatedBy() != null && !it.getItem().isApproved());
+        o.setHasManualItem(hasManual);
+        if (!hasManual) o.setStatus(OfferStatus.OPEN);
+        offerRepository.save(o);
+        return ResponseEntity.ok(ApiResponseDto.ok(OfferResponseDto.from(o)));
+    }
+
+    @PatchMapping("/{id}/reject-items")
+    public ResponseEntity<ApiResponseDto<OfferResponseDto>> rejectManualItems(@PathVariable UUID id) {
+        Offer o = offerRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Offer not found: " + id));
+        // Reject (deactivate) any carrier-submitted items referenced by this offer
+        o.getOfferItems().stream()
+                .map(it -> it.getItem())
+                .filter(item -> item.getCreatedBy() != null && !item.isApproved())
+                .forEach(item -> itemService.rejectItem(item.getId()));
+
+        // After rejecting, mark offer as CLOSED to avoid exposing invalid items
+        o.setHasManualItem(false);
+        o.setStatus(OfferStatus.CLOSED);
         offerRepository.save(o);
         return ResponseEntity.ok(ApiResponseDto.ok(OfferResponseDto.from(o)));
     }
