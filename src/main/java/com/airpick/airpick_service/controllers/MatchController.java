@@ -38,10 +38,10 @@ import java.util.UUID;
 @Tag(
         name = "Matches",
         description = "Full match lifecycle between shippers and carriers. " +
-                      "A shipper creates a match against an open offer specifying which items and quantities they need. " +
-                      "The carrier reviews and either accepts or rejects it with a reason. " +
-                      "Once accepted, the carrier starts delivery (IN_PROGRESS) and marks it complete. " +
-                      "Each matched item has its own delivery status and full audit history."
+                "A shipper creates a match against an open offer specifying which items and quantities they need. " +
+                "The carrier reviews and either accepts or rejects it with a reason. " +
+                "Once accepted, the carrier starts delivery (IN_PROGRESS) and marks it complete. " +
+                "Each matched item has its own delivery status and full audit history."
 )
 @RestController
 @RequestMapping("/api/v1/matches")
@@ -57,16 +57,16 @@ public class MatchController {
     @Operation(
             summary = "Create a match request",
             description = "Shipper requests a match against an open offer. " +
-                          "Each requested item must belong to the offer and the quantity must not exceed " +
-                          "the item's remaining available slots. " +
-                          "If all offer slots are filled the offer automatically moves to FULLY_MATCHED. " +
-                          "A chat thread is created alongside the match for carrier-shipper communication."
+                    "Each requested item must belong to the offer and the quantity must not exceed " +
+                    "the item's remaining available slots. " +
+                    "If all offer slots are filled the offer automatically moves to FULLY_MATCHED. " +
+                    "A chat thread is created alongside the match for carrier-shipper communication."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Match created successfully, status is PENDING",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Offer not found, offer not OPEN, shipper is the carrier, " +
-                                                             "unknown offer item, or requested quantity exceeds available slots",
+                    "unknown offer item, or requested quantity exceeds available slots",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid JWT",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
@@ -86,8 +86,8 @@ public class MatchController {
     @Operation(
             summary = "Accept a match",
             description = "Carrier accepts a PENDING match request. " +
-                          "Transitions the match from PENDING to ACCEPTED. " +
-                          "The shipper is notified and can now communicate via the attached chat."
+                    "Transitions the match from PENDING to ACCEPTED. " +
+                    "The shipper is notified and can now communicate via the attached chat."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match accepted, status is now ACCEPTED",
@@ -109,10 +109,10 @@ public class MatchController {
     @Operation(
             summary = "Reject a match",
             description = "Carrier rejects a PENDING match request. A rejection reason is required. " +
-                          "The reserved item quantities are restored to the offer, " +
-                          "and if the offer was FULLY_MATCHED it reverts to OPEN. " +
-                          "All matched items are set to CANCELLED. " +
-                          "Transitions the match from PENDING to REJECTED."
+                    "The reserved item quantities are restored to the offer, " +
+                    "and if the offer was FULLY_MATCHED it reverts to OPEN. " +
+                    "All matched items are set to CANCELLED. " +
+                    "Transitions the match from PENDING to REJECTED."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match rejected, status is now REJECTED",
@@ -135,9 +135,9 @@ public class MatchController {
     @Operation(
             summary = "Start a match (mark items as collected)",
             description = "Carrier marks an ACCEPTED match as IN_PROGRESS after pickup. " +
-                          "Requires a pickup photo to have been uploaded via POST /{matchId}/pickup-photo " +
-                          "and all matched items to be in COLLECTED status. " +
-                          "Transitions the match from ACCEPTED to IN_PROGRESS."
+                    "Requires a pickup photo to have been uploaded via POST /{matchId}/pickup-photo " +
+                    "and all matched items to be in COLLECTED status. " +
+                    "Transitions the match from ACCEPTED to IN_PROGRESS."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match started, status is now IN_PROGRESS",
@@ -159,11 +159,11 @@ public class MatchController {
     @Operation(
             summary = "Upload match pickup photo",
             description = "Carrier uploads a pickup proof photo for the match. " +
-                          "The image is streamed to a private Google Cloud Storage bucket at " +
-                          "matches/{matchId}/pickup-photo.{ext}. " +
-                          "All PENDING matched items are marked COLLECTED. " +
-                          "Only allowed while the match is ACCEPTED. " +
-                          "Required before PATCH /{matchId}/start."
+                    "The image is streamed to a private Google Cloud Storage bucket at " +
+                    "matches/{matchId}/pickup-photo.{ext}. " +
+                    "All PENDING matched items are marked COLLECTED. " +
+                    "Only allowed while the match is ACCEPTED. " +
+                    "Required before PATCH /{matchId}/start."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Photo uploaded and match updated",
@@ -185,7 +185,7 @@ public class MatchController {
     @Operation(
             summary = "Get signed URL for pickup photo",
             description = "Returns a short-lived signed URL to view the private pickup photo in GCS. " +
-                          "Accessible to the carrier and shipper of the match."
+                    "Accessible to the carrier and shipper of the match."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Signed URL returned",
@@ -205,8 +205,8 @@ public class MatchController {
     @Operation(
             summary = "Complete a match (mark delivery done)",
             description = "Carrier marks an IN_PROGRESS match as COMPLETED. " +
-                          "Any matched items not already in a terminal status are automatically set to DELIVERED. " +
-                          "Transitions the match from IN_PROGRESS to COMPLETED."
+                    "Any matched items not already in a terminal status are automatically set to DELIVERED. " +
+                    "Transitions the match from IN_PROGRESS to COMPLETED."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match completed, status is now COMPLETED",
@@ -232,12 +232,12 @@ public class MatchController {
     @Operation(
             summary = "Cancel a match",
             description = "Cancels a match. Rules differ by role:\n\n" +
-                          "- **Shipper**: can cancel only when status is PENDING.\n" +
-                          "- **Carrier**: can cancel when status is PENDING or ACCEPTED. " +
-                          "Cancelling after ACCEPTED increments the carrier's cancellation count.\n\n" +
-                          "Reserved item quantities are restored to the offer. " +
-                          "If the offer was FULLY_MATCHED it reverts to OPEN. " +
-                          "All matched items are set to CANCELLED."
+                    "- **Shipper**: can cancel only when status is PENDING.\n" +
+                    "- **Carrier**: can cancel when status is PENDING or ACCEPTED. " +
+                    "Cancelling after ACCEPTED increments the carrier's cancellation count.\n\n" +
+                    "Reserved item quantities are restored to the offer. " +
+                    "If the offer was FULLY_MATCHED it reverts to OPEN. " +
+                    "All matched items are set to CANCELLED."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match cancelled successfully",
@@ -264,17 +264,17 @@ public class MatchController {
     @Operation(
             summary = "Update a matched item's delivery status",
             description = "Updates the delivery status of a single matched item. " +
-                          "Both the carrier and shipper of the match can call this. " +
-                          "Typical carrier flow: PENDING → COLLECTED → IN_TRANSIT → DELIVERED. " +
-                          "Shipper can flag an issue: DELIVERED → RETURNED or any active status → FAILED. " +
-                          "Transitions from terminal statuses (DELIVERED, FAILED, RETURNED, CANCELLED) are blocked. " +
-                          "To set items to CANCELLED use the cancel match endpoint instead."
+                    "Both the carrier and shipper of the match can call this. " +
+                    "Typical carrier flow: PENDING → COLLECTED → IN_TRANSIT → DELIVERED. " +
+                    "Shipper can flag an issue: DELIVERED → RETURNED or any active status → FAILED. " +
+                    "Transitions from terminal statuses (DELIVERED, FAILED, RETURNED, CANCELLED) are blocked. " +
+                    "To set items to CANCELLED use the cancel match endpoint instead."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matched item status updated",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Item is in a terminal status, CANCELLED target is not allowed here, " +
-                                                             "or the item does not belong to this match",
+                    "or the item does not belong to this match",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid JWT",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
@@ -298,7 +298,7 @@ public class MatchController {
     @Operation(
             summary = "Get a match by ID",
             description = "Returns full details of a match including all matched items, " +
-                          "their delivery status histories, the match status history, and the chat ID."
+                    "their delivery status histories, the match status history, and the chat ID."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Match retrieved successfully",
@@ -317,7 +317,7 @@ public class MatchController {
     @Operation(
             summary = "Get my matches as shipper",
             description = "Returns all matches where the authenticated user is the shipper, " +
-                          "across all statuses. Ordered by creation date descending."
+                    "across all statuses. Ordered by creation date descending."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches retrieved successfully",
@@ -334,7 +334,7 @@ public class MatchController {
     @Operation(
             summary = "Get my matches as carrier",
             description = "Returns all matches where the authenticated user is the carrier, " +
-                          "across all statuses. Ordered by creation date descending."
+                    "across all statuses. Ordered by creation date descending."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches retrieved successfully",
@@ -351,11 +351,11 @@ public class MatchController {
     @Operation(
             summary = "Track my deliveries as shipper",
             description = "Returns matches where you are the shipper, grouped into three delivery stages:\n\n" +
-                          "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
-                          "- **inProgress** — IN_PROGRESS (carrier en route)\n" +
-                          "- **completed** — COMPLETED (delivered)\n\n" +
-                          "Excludes PENDING, CANCELLED, and REJECTED matches. " +
-                          "Ordered by most recently updated within each group."
+                    "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
+                    "- **inProgress** — IN_PROGRESS (carrier en route)\n" +
+                    "- **completed** — COMPLETED (delivered)\n\n" +
+                    "Excludes PENDING, CANCELLED, and REJECTED matches. " +
+                    "Ordered by most recently updated within each group."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Track summary retrieved",
@@ -386,19 +386,18 @@ public class MatchController {
     public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> searchTrackAsShipper(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
-            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
-        return ResponseEntity.ok(ApiResponseDto.ok(
-                matchService.searchTrackAsShipper(userDetails.getUsername(), sourceCountry, destinationCountry)));
+            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry) {
+        return ResponseEntity.ok(ApiResponseDto.ok(matchService.searchTrackAsShipper(userDetails.getUsername(), sourceCountry, destinationCountry)));
     }
 
     @Operation(
             summary = "Track my deliveries as carrier",
             description = "Returns matches where you are the carrier, grouped into three delivery stages:\n\n" +
-                          "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
-                          "- **inProgress** — IN_PROGRESS (en route to deliver)\n" +
-                          "- **completed** — COMPLETED (delivered)\n\n" +
-                          "Excludes PENDING, CANCELLED, and REJECTED matches. " +
-                          "Ordered by most recently updated within each group."
+                    "- **collected** — ACCEPTED (picked up, awaiting or ready to start transit)\n" +
+                    "- **inProgress** — IN_PROGRESS (en route to deliver)\n" +
+                    "- **completed** — COMPLETED (delivered)\n\n" +
+                    "Excludes PENDING, CANCELLED, and REJECTED matches. " +
+                    "Ordered by most recently updated within each group."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Track summary retrieved",
@@ -429,7 +428,7 @@ public class MatchController {
     public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> searchTrackAsCarrier(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
-            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
+            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry) {
         return ResponseEntity.ok(ApiResponseDto.ok(
                 matchService.searchTrackAsCarrier(userDetails.getUsername(), sourceCountry, destinationCountry)));
     }
@@ -437,8 +436,8 @@ public class MatchController {
     @Operation(
             summary = "Get all matches for an offer",
             description = "Returns all matches created against a specific offer. " +
-                          "Caller must be the carrier who owns the offer. " +
-                          "Useful for a carrier to see all shippers who have matched their offer."
+                    "Caller must be the carrier who owns the offer. " +
+                    "Useful for a carrier to see all shippers who have matched their offer."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matches retrieved successfully",

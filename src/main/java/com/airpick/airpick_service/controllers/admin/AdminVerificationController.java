@@ -32,13 +32,15 @@ public class AdminVerificationController {
         Pageable p = PageRequest.of(page, size);
         var pageRes = (status == null || status.isBlank()) ? userVerificationRepository.findAll(p) : userVerificationRepository.findByStatus(status, p);
 
-        List<Map<String, Object>> items = pageRes.stream().map(uv -> Map.of(
-                "sessionId", uv.getVeriffSessionId(),
-                "userId", uv.getUserProfile().getUser().getId(),
-                "status", uv.getStatus(),
-                "createdAt", uv.getVerificationRequestedAt(),
-                "verifiedAt", uv.getVerifiedAt()
-        )).collect(Collectors.toList());
+        List<Map<String, Object>> items = pageRes.stream().map(uv -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("sessionId", uv.getVeriffSessionId());
+            m.put("userId", uv.getUserProfile().getUser().getId());
+            m.put("status", uv.getStatus());
+            m.put("createdAt", uv.getVerificationRequestedAt());
+            m.put("verifiedAt", uv.getVerifiedAt());
+            return m;
+        }).collect(Collectors.toList());
 
         return ResponseEntity.ok(ApiResponseDto.ok(items));
     }
@@ -47,14 +49,13 @@ public class AdminVerificationController {
     public ResponseEntity<ApiResponseDto<Map<String, Object>>> get(@PathVariable String sessionId) {
         UserVerification uv = userVerificationRepository.findByVeriffSessionIdWithProfile(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Verification not found: " + sessionId));
-        Map<String, Object> m = Map.of(
-                "sessionId", uv.getVeriffSessionId(),
-                "userId", uv.getUserProfile().getUser().getId(),
-                "status", uv.getStatus(),
-                "message", uv.getVerificationMessage(),
-                "createdAt", uv.getVerificationRequestedAt(),
-                "verifiedAt", uv.getVerifiedAt()
-        );
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("sessionId", uv.getVeriffSessionId());
+        m.put("userId", uv.getUserProfile().getUser().getId());
+        m.put("status", uv.getStatus());
+        m.put("message", uv.getVerificationMessage());
+        m.put("createdAt", uv.getVerificationRequestedAt());
+        m.put("verifiedAt", uv.getVerifiedAt());
         return ResponseEntity.ok(ApiResponseDto.ok(m));
     }
 

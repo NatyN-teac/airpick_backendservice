@@ -190,13 +190,15 @@ public class IdentityVerificationService {
     public java.util.List<java.util.Map<String, Object>> listVerifications(int page, int size, String status) {
         org.springframework.data.domain.Pageable p = org.springframework.data.domain.PageRequest.of(page, size);
         var pageRes = (status == null || status.isBlank()) ? userVerificationRepository.findAll(p) : userVerificationRepository.findByStatus(status, p);
-        return pageRes.stream().map(uv -> java.util.Map.of(
-                "sessionId", uv.getVeriffSessionId(),
-                "userId", uv.getUserProfile().getUser().getId(),
-                "status", uv.getStatus(),
-                "createdAt", uv.getVerificationRequestedAt(),
-                "verifiedAt", uv.getVerifiedAt()
-        )).toList();
+        return pageRes.stream().map(uv -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("sessionId", uv.getVeriffSessionId());
+            m.put("userId", uv.getUserProfile().getUser().getId());
+            m.put("status", uv.getStatus());
+            m.put("createdAt", uv.getVerificationRequestedAt());
+            m.put("verifiedAt", uv.getVerifiedAt());
+            return m;
+        }).toList();
     }
 
     @Transactional

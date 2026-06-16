@@ -46,7 +46,7 @@ public interface MatchRepository extends JpaRepository<Match, UUID> {
             @Param("shipperId") UUID shipperId,
             @Param("statuses") List<MatchStatus> statuses,
             @Param("sourceCountry") String sourceCountry,
-            @Param("destinationCountry") String destinationCountry,
+            @Param("destinationCountry") String destinationCountry
     );
 
     List<Match> findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
