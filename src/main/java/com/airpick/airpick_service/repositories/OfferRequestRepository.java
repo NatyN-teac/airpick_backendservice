@@ -13,6 +13,9 @@ public interface OfferRequestRepository extends JpaRepository<OfferRequest, UUID
     @Query("SELECT r FROM OfferRequest r WHERE r.status = 'OPEN' ORDER BY r.createdAt DESC")
     List<OfferRequest> findAllOpen();
 
+    // Paging by status for admin
+    org.springframework.data.domain.Page<OfferRequest> findByStatus(com.airpick.airpick_service.models.OfferRequestStatus status, org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT r FROM OfferRequest r WHERE r.shipper.id = :shipperId AND r.status != 'CANCELLED' ORDER BY r.createdAt DESC")
     List<OfferRequest> findAllByShipperId(@Param("shipperId") UUID shipperId);
 
