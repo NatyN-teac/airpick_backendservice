@@ -675,11 +675,26 @@ public class MatchService {
                                                      String destinationCountry,
                                                      String destinationCity) {
         User shipper = resolveUser(email);
-        List<Match> matches = matchRepository.findAllByShipperIdAndStatusInOrderByUpdatedAtDesc(
-                shipper.getId(), TRACK_STATUSES);
+        boolean hasFilter = (sourceCountry != null && !sourceCountry.isBlank())
+            || (sourceCity != null && !sourceCity.isBlank())
+            || (destinationCountry != null && !destinationCountry.isBlank())
+            || (destinationCity != null && !destinationCity.isBlank());
 
-        List<Match> filtered = filterMatchesByLocation(matches, sourceCountry, sourceCity, destinationCountry, destinationCity);
-        return buildTrack(filtered);
+        if (!hasFilter) {
+            List<Match> matches = matchRepository.findAllByShipperIdAndStatusInOrderByUpdatedAtDesc(
+                shipper.getId(), TRACK_STATUSES);
+            return buildTrack(matches);
+        }
+
+        String sc = sourceCountry == null ? null : sourceCountry.trim().toLowerCase();
+        String sct = sourceCity == null ? null : sourceCity.trim().toLowerCase();
+        String dc = destinationCountry == null ? null : destinationCountry.trim().toLowerCase();
+        String dct = destinationCity == null ? null : destinationCity.trim().toLowerCase();
+
+        List<Match> matches = matchRepository.findAllByShipperIdAndStatusInAndOfferRequestFieldsOrderByUpdatedAtDesc(
+            shipper.getId(), TRACK_STATUSES, sc, sct, dc, dct);
+
+        return buildTrack(matches);
     }
 
     /**
