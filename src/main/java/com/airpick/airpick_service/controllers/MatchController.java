@@ -386,11 +386,9 @@ public class MatchController {
     public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> searchTrackAsShipper(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
-            @Parameter(description = "Source city (optional)") @RequestParam(required = false) String sourceCity,
             @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
-            @Parameter(description = "Destination city (optional)") @RequestParam(required = false) String destinationCity) {
         return ResponseEntity.ok(ApiResponseDto.ok(
-                matchService.searchTrackAsShipper(userDetails.getUsername(), sourceCountry, sourceCity, destinationCountry, destinationCity)));
+                matchService.searchTrackAsShipper(userDetails.getUsername(), sourceCountry, destinationCountry)));
     }
 
     @Operation(
@@ -431,11 +429,9 @@ public class MatchController {
     public ResponseEntity<ApiResponseDto<MatchTrackResponseDto>> searchTrackAsCarrier(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
-            @Parameter(description = "Source city (optional)") @RequestParam(required = false) String sourceCity,
             @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
-            @Parameter(description = "Destination city (optional)") @RequestParam(required = false) String destinationCity) {
         return ResponseEntity.ok(ApiResponseDto.ok(
-                matchService.searchTrackAsCarrier(userDetails.getUsername(), sourceCountry, sourceCity, destinationCountry, destinationCity)));
+                matchService.searchTrackAsCarrier(userDetails.getUsername(), sourceCountry, destinationCountry)));
     }
 
     @Operation(
