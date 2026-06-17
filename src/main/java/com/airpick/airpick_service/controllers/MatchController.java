@@ -9,7 +9,9 @@ import com.airpick.airpick_service.dtos.output.ApiResponseDto;
 import com.airpick.airpick_service.dtos.output.MatchResponseDto;
 import com.airpick.airpick_service.dtos.output.MatchTrackResponseDto;
 import com.airpick.airpick_service.dtos.output.PickupPhotoUrlResponseDto;
+import com.airpick.airpick_service.dtos.output.SenderOfferRequestResponseDto;
 import com.airpick.airpick_service.services.MatchService;
+import com.airpick.airpick_service.services.OfferRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -49,6 +51,7 @@ import java.util.UUID;
 public class MatchController {
 
     private final MatchService matchService;
+    private final OfferRequestService offerRequestService;
 
     // -------------------------------------------------------------------------
     // Shipper — create match
@@ -389,6 +392,25 @@ public class MatchController {
             @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry,
         return ResponseEntity.ok(ApiResponseDto.ok(
                 matchService.searchTrackAsShipper(userDetails.getUsername(), sourceCountry, destinationCountry)));
+    }
+
+    @Operation(
+            summary = "Public search of open offer requests (no authentication required)",
+            description = "Public, unauthenticated search of OPEN offer requests by optional " +
+                    "source/destination country, not scoped to any particular user. " +
+                    "Any combination of the parameters may be provided; an offer request is returned " +
+                    "when its status is OPEN and it matches all provided country filters."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Open offer requests retrieved",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
+    })
+    @GetMapping("/track/shipper/search")
+    public ResponseEntity<ApiResponseDto<List<SenderOfferRequestResponseDto>>> searchOpenOfferRequests(
+            @Parameter(description = "Source country (optional)") @RequestParam(required = false) String sourceCountry,
+            @Parameter(description = "Destination country (optional)") @RequestParam(required = false) String destinationCountry) {
+        return ResponseEntity.ok(ApiResponseDto.ok(
+                offerRequestService.searchOpenRequests(sourceCountry, destinationCountry)));
     }
 
     @Operation(

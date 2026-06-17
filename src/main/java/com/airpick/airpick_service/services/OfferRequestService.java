@@ -156,6 +156,19 @@ public class OfferRequestService {
                 .toList();
     }
 
+    /**
+     * Public search of OPEN offer requests by optional source/destination country
+     * (any combination). Not scoped to any user and requires no authentication.
+     */
+    @Transactional(readOnly = true)
+    public List<SenderOfferRequestResponseDto> searchOpenRequests(String sourceCountry, String destinationCountry) {
+        String sc = (sourceCountry == null || sourceCountry.isBlank()) ? null : sourceCountry.trim();
+        String dc = (destinationCountry == null || destinationCountry.isBlank()) ? null : destinationCountry.trim();
+        return offerRequestRepository.searchOpen(sc, dc).stream()
+                .map(SenderOfferRequestResponseDto::from)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<SenderOfferRequestResponseDto> browseRequests(String email) {
         User shipper = userRepository.findByEmail(email)

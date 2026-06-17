@@ -691,6 +691,8 @@ public class MatchService {
         return buildTrack(matches);
     }
 
+
+
     /**
      * Returns delivery tracking for matches where the user is the carrier,
      * grouped into collected (ACCEPTED), inProgress (IN_PROGRESS), and completed (COMPLETED).
@@ -701,7 +703,7 @@ public class MatchService {
         log.info("Fetching carrier track for user {}", carrier.getId());
         return buildTrack(matchRepository.findAllByCarrierIdAndStatusInOrderByUpdatedAtDesc(
             carrier.getId(), TRACK_STATUSES));
-        }
+    }
 
         /**
          * Search carrier matches by optional location filters (any combination).
