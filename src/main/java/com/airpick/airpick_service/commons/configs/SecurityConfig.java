@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/users/register").permitAll()
                         .requestMatchers("/api/v1/airports").permitAll() // TODO: remove after testing
                         .requestMatchers("/api/v1/webhooks/veriff/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/matches/track/shipper/search").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

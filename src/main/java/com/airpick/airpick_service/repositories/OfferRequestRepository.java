@@ -13,6 +13,18 @@ public interface OfferRequestRepository extends JpaRepository<OfferRequest, UUID
     @Query("SELECT r FROM OfferRequest r WHERE r.status = 'OPEN' ORDER BY r.createdAt DESC")
     List<OfferRequest> findAllOpen();
 
+    @Query("""
+            SELECT r FROM OfferRequest r
+            WHERE r.status = 'OPEN'
+              AND (CAST(:sourceCountry AS string) IS NULL
+                   OR LOWER(r.sourceCountry) LIKE CONCAT('%', LOWER(CAST(:sourceCountry AS string)), '%'))
+              AND (CAST(:destinationCountry AS string) IS NULL
+                   OR LOWER(r.destinationCountry) LIKE CONCAT('%', LOWER(CAST(:destinationCountry AS string)), '%'))
+            ORDER BY r.createdAt DESC
+            """)
+    List<OfferRequest> searchOpen(@Param("sourceCountry") String sourceCountry,
+                                  @Param("destinationCountry") String destinationCountry);
+
     // Paging by status for admin
     org.springframework.data.domain.Page<OfferRequest> findByStatus(com.airpick.airpick_service.models.OfferRequestStatus status, org.springframework.data.domain.Pageable pageable);
 

@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(grep -iE \"could not|data type|parameter|ERROR|Exception|SQL\" /tmp/app.log | grep -iv \"DEBUG\" | tail -40)",
+      "Read(//tmp/**)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8084 -State Listen | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Get-Process -Id $_ | Select-Object Id, ProcessName, StartTime })",
+      "Bash(nohup ./mvnw -q -o spring-boot:run -Dspring-boot.run.profiles=dev)",
+      "Bash(echo \"started pid $!\")",
+      "Bash(curl -s \"http://localhost:8084/api/v1/matches/track/shipper/search?sourceCountry=Ethiopia\")",
+      "Bash(curl -s \"http://localhost:8084/api/v1/matches/track/shipper/search\")",
+      "Bash(curl -s \"http://localhost:8084/api/v1/matches/track/shipper/search?destinationCountry=China\")",
+      "Bash(curl -s \"http://localhost:8084/api/v1/matches/track/shipper/search?sourceCountry=Ethiopia&destinationCountry=China\")",
+      "Bash(./mvnw -q -o compile)"
     ]
   }
 }
